@@ -1,0 +1,162 @@
+{
+  "$schema_version": 1,
+  "rules": [
+    {
+      "id": "RED-GUARANTEE-FINANCIAL",
+      "level": "red",
+      "category": "guaranteed-outcome",
+      "reason": "Appears to guarantee a financial, tax, savings, or income outcome. The spec forbids tax, legal, income, profit, savings, and rate guarantees outright.",
+      "applies_to": ["*"],
+      "all_of": [
+        "\\b(guarantee[ds]?|guaranteed|promise[ds]?|assured|risk[- ]free|no risk|100%|always (?:results in|means|gets you)|will definitely)\\b",
+        "\\b(save|saving|saves|savings|earn|earning|make|made|profit|income|revenue|roi|refund|deduction|write[- ]?off|tax|rate|payout|settlement)\\b"
+      ],
+      "notes": "Co-occurrence rather than a single phrase: 'guaranteed' alone is fine ('guaranteed to be organized'), and 'save' alone is fine. The pair is what creates the claim."
+    },
+    {
+      "id": "RED-GUARANTEE-SPIRITUAL",
+      "level": "red",
+      "category": "guaranteed-outcome",
+      "reason": "Appears to guarantee a spiritual outcome. The spec forbids guaranteeing spiritual outcomes and forbids claiming religious authority.",
+      "applies_to": ["*"],
+      "all_of": [
+        "\\b(guarantee[ds]?|guaranteed|promise[ds]?|assured|will definitely|always (?:results in|means|leads to))\\b",
+        "\\b(jannah|paradise|forgiveness|forgiven|reward(?:ed)?|hasanat|ajr|barakah|closer to allah|iman|imaan|khushu|salvation|sins?)\\b"
+      ]
+    },
+    {
+      "id": "RED-RELIGIOUS-AUTHORITY",
+      "level": "red",
+      "category": "religious-authority",
+      "reason": "Claims religious authority or issues a ruling. The spec forbids claiming religious authority and requires founder approval before citing any ayah, hadith, fatwa, or scholarly position.",
+      "applies_to": ["*"],
+      "patterns": [
+        "\\b(?:it is|its|it's) (?:haram|halal|makruh|mustahabb|wajib|fard|sunnah)\\b",
+        "\\bfatwa\\b",
+        "\\b(?:i|we) (?:rule|declare|certify) that\\b",
+        "\\bislam (?:says|requires|demands|commands)\\b",
+        "\\bthe (?:quran|qur'an|hadith|sunnah) (?:says|states|commands|requires)\\b",
+        "\\baccording to (?:the )?(?:quran|qur'an|hadith|scholars?|sheikh|shaykh|imam)\\b"
+      ],
+      "notes": "Fires on Rig Receipts content too. A religious ruling appearing on the trucking brand would be at least as serious as on Tilawah Lock."
+    },
+    {
+      "id": "RED-RELIGIOUS-PRESSURE",
+      "level": "red",
+      "category": "guilt-shame",
+      "reason": "Uses guilt, shame, or religious pressure. The spec forbids shaming Muslims and forbids exploiting religious guilt.",
+      "applies_to": ["*"],
+      "patterns": [
+        "\\bif you (?:really|truly|actually) (?:loved|feared|believed in|cared about) allah\\b",
+        "\\b(?:a |any )?(?:real|true|proper|serious) muslim (?:would|wouldn't|would not|should|doesn't|does not)\\b",
+        "\\bhow can you call yourself\\b",
+        "\\b(?:shame on you|you should be ashamed|be ashamed)\\b",
+        "\\blazy muslim\\b",
+        "\\byou(?:'re| are) (?:sinning|committing a sin|failing allah)\\b",
+        "\\b(?:allah|god) is (?:watching|disappointed|angry)\\b",
+        "\\bwhat will you (?:say|tell) allah\\b",
+        "\\bif you miss(?:ed)? (?:fajr|salah|prayer).{0,40}\\b(?:you are|you're|then you)\\b"
+      ]
+    },
+    {
+      "id": "RED-WORSHIP-PAYWALL-FORCED",
+      "level": "red",
+      "category": "religious-monetization",
+      "reason": "Makes payment feel religiously obligatory. The spec forbids making payment feel religiously forced.",
+      "applies_to": ["*"],
+      "all_of": [
+        "\\b(?:upgrade|premium|pro|paid|subscribe|subscription|pay|purchase|buy)\\b",
+        "\\b(?:to (?:truly|properly|really) (?:pray|worship|read quran)|if you(?:'re| are) serious about (?:your )?(?:deen|iman|salah|worship)|real (?:muslims?|believers?) (?:pay|upgrade|subscribe))\\b"
+      ],
+      "notes": "Ordinary premium messaging is Yellow, not Red — see YEL-TL-PAYWALL-WORSHIP. This rule fires only when the pitch ties payment to religious sincerity."
+    },
+    {
+      "id": "RED-RR-LOAD-BOARD",
+      "level": "red",
+      "category": "load-board-positioning",
+      "reason": "Positions Rig Receipts as a load board or implies booking, bidding, dispatching, or contacting brokers. The spec states Rig Receipts is not a load board.",
+      "applies_to": ["Rig Receipts"],
+      "patterns": [
+        "\\bload board\\b",
+        "\\b(?:book|booking|bid on|bidding on|grab|grabbing|accept) (?:a |the |your |this )?load\\b",
+        "\\bfind (?:you )?(?:loads|freight|a load)\\b",
+        "\\bpost (?:your |a )?truck\\b",
+        "\\b(?:message|contact|call|reach out to|negotiate with) (?:the |a |your )?broker\\b",
+        "\\bdispatch(?:ing)? service\\b",
+        "\\bwe(?:'ll| will) (?:find|get) you (?:loads|freight|better rates)\\b"
+      ]
+    },
+    {
+      "id": "RED-RR-BROKER-NAMED",
+      "level": "red",
+      "category": "broker-exposure",
+      "reason": "Names a specific freight broker. The spec forbids publishing broker names in general public examples.",
+      "applies_to": ["Rig Receipts"],
+      "patterns": [
+        "\\b(?:c\\.?h\\.? ?robinson|chrobinson|total quality logistics|\\btql\\b|xpo logistics|coyote logistics|landstar|echo global|rxo|uber freight|convoy|jb ?hunt|j\\.?b\\.? hunt|schneider logistics|worldwide express|arcbest|nolan transportation|ntg logistics|england logistics|allen lund|gp transco)\\b"
+      ],
+      "notes": "Starter denylist of publicly-known brokerages. Extend as needed; an unlisted broker name still trips YEL-RR-BROKER because the word 'broker' will almost always appear alongside it."
+    },
+    {
+      "id": "RED-RR-REAL-PAPERWORK",
+      "level": "red",
+      "category": "sensitive-documents",
+      "reason": "References real freight paperwork with identifying detail. The spec forbids using real sensitive freight paperwork in public marketing and requires public rate-card examples to be fictional or privacy-redacted.",
+      "applies_to": ["Rig Receipts"],
+      "all_of": [
+        "\\b(?:rate con|rate confirmation|bol|bill of lading|load confirmation|pro number|scale ticket)\\b",
+        "\\b(?:actual|real|my own|screenshot of my|from last week's|attached is)\\b"
+      ],
+      "none_of": ["\\b(?:fictional|example only|illustrative|redacted|anonymi[sz]ed|made[- ]up|sample|for illustration)\\b"],
+      "notes": "The none_of clause is what lets a properly-labelled fictional example through."
+    },
+    {
+      "id": "RED-RR-UNSAFE-TRUCKING",
+      "level": "red",
+      "category": "unsafe-behavior",
+      "reason": "Encourages unsafe or non-compliant trucking behavior. The spec forbids this outright.",
+      "applies_to": ["Rig Receipts"],
+      "patterns": [
+        "\\b(?:skip|skipping) (?:your |the )?(?:break|breaks|10[- ]hour|34[- ]hour|reset)\\b",
+        "\\b(?:drive|driving|push) (?:through|while) (?:tired|exhausted|sleepy|fatigue)\\b",
+        "\\b(?:fudge|fudging|cook|cooking|fake|faking|edit|editing) (?:your |the )?(?:logs?|log ?book|eld|hos)\\b",
+        "\\b(?:run|running) (?:illegal|off the books|without (?:a )?log)\\b",
+        "\\bpersonal conveyance (?:trick|hack|loophole)\\b",
+        "\\b(?:ignore|beat|get around) (?:the )?(?:hos|hours of service|dot|eld) (?:rules?|limits?)\\b"
+      ]
+    },
+    {
+      "id": "RED-PLATFORM-EVASION",
+      "level": "red",
+      "category": "platform-policy",
+      "reason": "References private APIs, scraping, or automation intended to evade platform restrictions. The spec forbids all of these.",
+      "applies_to": ["*"],
+      "patterns": [
+        "\\b(?:private|undocumented|unofficial|internal) api\\b",
+        "\\b(?:bypass|get around|beat|evade|circumvent) (?:the )?(?:rate limit|captcha|api limit|restriction|ban|detection|shadow ?ban)\\b",
+        "\\b(?:scrape|scraping|scraper) (?:behind|past) (?:a )?login\\b",
+        "\\b(?:bot|burner|throwaway) accounts?\\b",
+        "\\b(?:follow|unfollow) (?:bot|automation|loop)\\b",
+        "\\b(?:mass|auto) (?:dm|dming|commenting|comment)\\b",
+        "\\bbuy(?:ing)? (?:followers|engagement|likes|views)\\b"
+      ]
+    },
+    {
+      "id": "RED-UNVERIFIED-STATISTIC",
+      "level": "red",
+      "category": "unverified-claim",
+      "reason": "States a statistic as fact without a source. The spec forbids using unverified statistics as fact.",
+      "applies_to": ["*"],
+      "all_of": [
+        "(?:\\b\\d{1,3}(?:\\.\\d+)?\\s?%|\\b\\d+ (?:out of|in) \\d+\\b|\\b(?:most|majority of) (?:truckers|drivers|muslims|owner[- ]operators)\\b)",
+        "\\b(?:studies show|research shows|statistics show|data shows|it(?:'s| is) proven|proven that|fact:|the average \\w+)\\b"
+      ],
+      "none_of": [
+        "\\b(?:source|src|per|according to|via|cite[ds]?|citation)\\s*[:\\-]?\\s*\\S",
+        "\\b(?:fmcsa|dat|bls|bureau of labor|ooida|atri|census|pew)\\b",
+        "\\bhttps?://"
+      ],
+      "notes": "Deliberately narrow: a bare percentage does not fire on its own, only a percentage presented with authority language and no source marker."
+    }
+  ]
+}

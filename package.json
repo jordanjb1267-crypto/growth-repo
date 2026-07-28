@@ -1,0 +1,33 @@
+{
+  "name": "autonomous-growth-os",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Autonomous Organic Growth OS for Rig Receipts and Tilawah Lock",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"tests/**/*.test.ts\"",
+    "audit:connectors": "node src/scripts/audit-connectors.ts",
+    "daily:research": "node src/scripts/daily-research.ts",
+    "content:generate": "node src/scripts/generate-content.ts",
+    "risk:classify": "node src/scripts/classify-risk.ts",
+    "approval:digest": "node src/scripts/approval-digest.ts",
+    "approve": "node src/scripts/approve.ts",
+    "reject": "node src/scripts/reject.ts",
+    "block": "node src/scripts/block.ts",
+    "edit": "node src/scripts/edit.ts",
+    "seal:template": "node src/scripts/seal-template.ts",
+    "publish:approved": "node src/scripts/publish-approved.ts",
+    "analytics:collect": "node src/scripts/collect-analytics.ts",
+    "learning:update": "node src/scripts/update-memory.ts",
+    "weekly:review": "node src/scripts/weekly-review.ts",
+    "weekly:plan": "node src/scripts/weekly-plan.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.10.0"
+  }
+}

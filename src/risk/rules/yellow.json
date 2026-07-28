@@ -1,0 +1,176 @@
+{
+  "$schema_version": 1,
+  "rules": [
+    {
+      "id": "YEL-RELIGIOUS-REFERENCE",
+      "level": "yellow",
+      "category": "religious-content",
+      "reason": "Mentions Allah, Salah, Quran, worship, iman, sin, or religious duty. The spec requires founder approval for religious content.",
+      "applies_to": ["*"],
+      "patterns": [
+        "\\b(?:allah|subhanahu|ta'?ala|swt)\\b",
+        "\\b(?:salah|salat|namaz|prayer|praying|pray)\\b",
+        "\\b(?:quran|qur'?an|tilawah|tilawat|recitation|reciting|ayah|ayat|surah|juz)\\b",
+        "\\b(?:hadith|sunnah|sahaba|scholar|sheikh|shaykh|imam|ulama)\\b",
+        "\\b(?:iman|imaan|deen|taqwa|khushu|dhikr|ibadah|worship|worshipping)\\b",
+        "\\b(?:sin|sinful|halal|haram|makruh|wajib|fard|mustahabb)\\b",
+        "\\b(?:fajr|dhuhr|zuhr|asr|maghrib|isha|jummah|jumu'?ah|ramadan|ramadhan)\\b",
+        "\\b(?:muslim|muslims|islamic|islam|ummah|masjid|mosque)\\b"
+      ],
+      "notes": "This is the rule that makes essentially all on-brand Tilawah Lock content approval-gated. That is the intended safety posture; the founder-approved template library (see CLAUDE.md addendum A2) is the sanctioned route to autonomy, not a loosening of this rule."
+    },
+    {
+      "id": "YEL-TL-PAYWALL-WORSHIP",
+      "level": "yellow",
+      "category": "religious-monetization",
+      "reason": "Discusses payment or premium features alongside worship. The spec requires founder approval for premium/paywall content tied to worship.",
+      "applies_to": ["*"],
+      "all_of": [
+        "\\b(?:premium|pro plan|upgrade|paid|subscribe|subscription|price|pricing|\\$\\d|free trial|paywall)\\b",
+        "\\b(?:salah|salat|prayer|quran|qur'?an|worship|ibadah|deen|iman|tilawah)\\b"
+      ],
+      "notes": "The Red counterpart (RED-WORSHIP-PAYWALL-FORCED) fires only when payment is framed as religiously obligatory. Ordinary pricing content near worship language lands here."
+    },
+    {
+      "id": "YEL-RELIGIOUS-EMOTIONAL",
+      "level": "yellow",
+      "category": "religious-content",
+      "reason": "Religious emotional framing. The spec lists religious emotional content as approval-required for Tilawah Lock.",
+      "applies_to": ["*"],
+      "patterns": [
+        "\\b(?:heart|soul|spiritually) (?:aches?|hurts?|empty|heavy|broken|dead)\\b",
+        "\\b(?:crying|tears|weep(?:ing)?) (?:in|during|over) (?:sujood|prayer|salah|dua)\\b",
+        "\\b(?:regret|guilt|shame) (?:over|about) (?:missed|missing) (?:salah|prayers?|fajr)\\b",
+        "\\byour (?:last|final) (?:salah|prayer|breath)\\b"
+      ]
+    },
+    {
+      "id": "YEL-RR-TAX-LEGAL",
+      "level": "yellow",
+      "category": "tax-legal",
+      "reason": "Discusses taxes or legal matters. The spec makes tax-related claims approval-required and forbids tax and legal guarantees.",
+      "applies_to": ["Rig Receipts"],
+      "patterns": [
+        "\\b(?:tax|taxes|taxable|irs|schedule c|1099|w-?9|deduction|deductible|write[- ]?off|per diem|quarterly (?:payment|filing)|audit)\\b",
+        "\\b(?:llc|s[- ]?corp|sole proprietor|incorporat(?:e|ion)|legal(?:ly)?|liability|lawsuit|attorney)\\b"
+      ]
+    },
+    {
+      "id": "YEL-RR-BROKER",
+      "level": "yellow",
+      "category": "broker-content",
+      "reason": "Discusses brokers. The spec makes broker-related content approval-required and warns against becoming primarily anti-broker.",
+      "applies_to": ["Rig Receipts"],
+      "patterns": ["\\bbroker(?:s|age|ages)?\\b", "\\b(?:shipper|3pl|freight forwarder)s?\\b"],
+      "notes": "Catches unlisted broker names indirectly — the word 'broker' nearly always appears alongside one. RED-RR-BROKER-NAMED handles the named case."
+    },
+    {
+      "id": "YEL-RR-RATE-BOARD",
+      "level": "yellow",
+      "category": "rate-board",
+      "reason": "References the Community Rate Board or rate transparency. The spec states Community Rate Board messaging requires founder approval.",
+      "applies_to": ["Rig Receipts"],
+      "patterns": [
+        "\\b(?:community )?rate board\\b",
+        "\\brate (?:transparency|card|data|history|historical)\\b",
+        "\\b(?:what|how much) (?:the )?(?:lane|route|load) (?:really )?pa(?:ys|id)\\b",
+        "\\bhistorical (?:freight )?rates?\\b"
+      ]
+    },
+    {
+      "id": "YEL-RR-FREIGHT-INTELLIGENCE",
+      "level": "yellow",
+      "category": "freight-claims",
+      "reason": "Makes a freight-intelligence claim. The spec makes freight intelligence claims approval-required.",
+      "applies_to": ["Rig Receipts"],
+      "all_of": [
+        "\\b(?:market|lane|freight|rate|spot market|capacity|demand)\\b",
+        "\\b(?:predict|forecast|trend(?:ing)?|intelligence|insight|analysis|is (?:going|about) to|will (?:rise|fall|drop|climb))\\b"
+      ]
+    },
+    {
+      "id": "YEL-RR-FINANCIAL-OUTCOME",
+      "level": "yellow",
+      "category": "financial-claim",
+      "reason": "Implies a financial outcome. The spec makes financial outcome claims approval-required.",
+      "applies_to": ["Rig Receipts"],
+      "all_of": [
+        "\\b(?:save[ds]?|saving|earn(?:ed|ing)?|make|made|profit|income|more money|extra)\\b",
+        "(?:\\$\\s?\\d|\\b\\d+\\s?(?:%|percent)|\\bper (?:month|week|year|mile)\\b|\\bcpm\\b)"
+      ],
+      "notes": "Deliberately fires on the number, not the verb. Cost-per-mile education without an outcome figure stays Green, which is what the spec's auto-publish allowlist intends."
+    },
+    {
+      "id": "YEL-RR-REAL-EXAMPLE",
+      "level": "yellow",
+      "category": "real-example",
+      "reason": "Appears to use a real route, rate, or customer example. The spec makes real route/rate examples and real user examples approval-required.",
+      "applies_to": ["Rig Receipts"],
+      "all_of": [
+        "\\b(?:real|actual|my|our|one of (?:our|my)) (?:load|run|lane|route|customer|driver|user|member)\\b",
+        "(?:\\$\\s?\\d|\\b\\d{2,4} miles?\\b|\\b[A-Z]{2}\\s?(?:to|-|→)\\s?[A-Z]{2}\\b)"
+      ],
+      "none_of": ["\\b(?:fictional|hypothetical|example only|illustrative|made[- ]up|sample|for illustration)\\b"]
+    },
+    {
+      "id": "YEL-TESTIMONIAL",
+      "level": "yellow",
+      "category": "real-example",
+      "reason": "Uses a testimonial, user comment, or user screenshot. The spec makes real user comments, testimonials, screenshots, and examples approval-required.",
+      "applies_to": ["*"],
+      "patterns": [
+        "\\b(?:testimonial|review from|one user (?:said|wrote|told)|a (?:driver|customer|user) (?:said|wrote|told|messaged)|screenshot from)\\b",
+        "\\b(?:5|five)[- ]star (?:review|rating)\\b",
+        "\\bwhat (?:our|my) (?:users|customers|drivers) (?:are )?say(?:ing)?\\b"
+      ]
+    },
+    {
+      "id": "YEL-COMPETITOR-COMPARISON",
+      "level": "yellow",
+      "category": "competitor",
+      "reason": "Compares against a competitor. The spec makes competitor comparisons approval-required.",
+      "applies_to": ["*"],
+      "patterns": [
+        "\\b(?:better than|worse than|unlike|compared to|vs\\.?|versus|instead of) (?:[A-Z][a-zA-Z]+|the other|other) (?:app|apps|tool|tools|option)\\b",
+        "\\b(?:other|competing|rival) (?:apps?|tools?|products?) (?:don'?t|can'?t|fail|won'?t)\\b",
+        "\\bwhy we(?:'re| are) (?:better|different)\\b"
+      ]
+    },
+    {
+      "id": "YEL-STRONG-CLAIM",
+      "level": "yellow",
+      "category": "strong-claim",
+      "reason": "Makes a strong or absolute claim. The spec makes strong claims approval-required.",
+      "applies_to": ["*"],
+      "patterns": [
+        "\\b(?:the only|the best|number one|#1|nobody else|no other|never fails|always works|instantly|overnight)\\b",
+        "\\b(?:will change your life|life[- ]changing|game[- ]changer|revolutionary)\\b",
+        "\\b(?:everyone|every single (?:trucker|driver|muslim))\\b"
+      ]
+    },
+    {
+      "id": "YEL-CREATOR-OUTREACH",
+      "level": "yellow",
+      "category": "outreach",
+      "reason": "Contains creator outreach. The spec makes creator outreach approval-required and manual-only.",
+      "applies_to": ["*"],
+      "patterns": [
+        "\\b(?:collab|collaboration|partner(?:ship)? opportunity|sponsor(?:ed|ship)?|brand deal|affiliate)\\b",
+        "\\b(?:dm|message|reach(?:ing)? out to) (?:you|creators?|influencers?)\\b",
+        "\\bwould you be (?:interested|open) (?:in|to)\\b"
+      ]
+    },
+    {
+      "id": "YEL-COMMUNITY-REPLY",
+      "level": "yellow",
+      "category": "community",
+      "reason": "Reads as a community reply. The spec keeps community replies manual-only and approval-gated.",
+      "applies_to": ["*"],
+      "patterns": [
+        "\\b(?:great question|thanks for (?:asking|sharing)|to answer your question|as (?:someone|a dev) who built)\\b",
+        "\\b(?:op|u/|r/)\\w+",
+        "\\breplying to\\b"
+      ]
+    }
+  ]
+}

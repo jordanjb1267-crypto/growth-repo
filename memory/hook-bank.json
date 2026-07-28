@@ -1,0 +1,10 @@
+{
+  "$schema_version": 1,
+  "description": "Hooks that have been used, with measured performance. The learning agent scales, reworks, archives, or kills a hook based on this record.",
+  "learning_thresholds": {
+    "min_impressions_to_classify": 500,
+    "min_instances_to_classify": 3,
+    "note": "At the spec's daily targets this system produces 30-60 measurable items per month. Acting on a single data point would be chasing noise. A hook is not classified until it clears BOTH thresholds, and performance is judged against the rolling median for its platform, not an absolute cutoff. See CLAUDE.md addendum A5."
+  },
+  "hooks": []
+}

@@ -1,0 +1,20 @@
+{
+  "$schema_version": 1,
+  "id": "RR-CPM-BASICS-001",
+  "product": "Rig Receipts",
+  "campaign": "Cost Per Mile School",
+  "approved_by": "founder",
+  "approved_at": "2026-07-28T00:00:00.000Z",
+  "content_hash": "b91208f7de28a506438ee0591930a64c6aec052044a9b5a7a5a40e5588a7e655",
+  "hook": "Most drivers can quote their rate per mile. Far fewer can quote their cost per mile.",
+  "body": "Take one category — {{cost_category}} — and work out what it costs you across a full month, then divide by the miles you actually ran. Not the loaded miles. All of them. That single number is usually the one people are most wrong about.",
+  "caption": "One cost category at a time is how you get to a cost per mile you actually believe.",
+  "cta": "Rig Receipts — know what every load really pays.",
+  "slots": [
+    {
+      "name": "cost_category",
+      "description": "A single operating cost category, named plainly. Good: 'tires'. Never include a dollar figure — a figure here would read as a financial outcome claim and the slot check will reject it.",
+      "max_length": 40
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "$schema_version": 1,
+  "description": "Per-platform performance baselines. Rolling medians rather than absolute targets, so 'underperforming' means underperforming relative to this account's own history rather than an industry number we cannot verify.",
+  "learning_thresholds": {
+    "min_impressions_to_classify": 500,
+    "min_instances_for_median": 5,
+    "underperformance_window_days": 14,
+    "note": "The spec's 14-day underperformance rule fires only once the platform has at least min_instances_for_median published items to form a baseline from. Before that there is no median to compare against."
+  },
+  "platforms": {}
+}

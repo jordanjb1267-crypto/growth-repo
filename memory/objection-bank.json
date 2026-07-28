@@ -1,0 +1,5 @@
+{
+  "$schema_version": 1,
+  "description": "Objections the audience raises repeatedly, and the approved response angle for each. Populated by the learning agent when the same objection appears in comments more than once.",
+  "objections": []
+}
