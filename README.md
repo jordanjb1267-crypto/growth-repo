@@ -4,7 +4,25 @@ Organic marketing system for **Rig Receipts** (trucking profitability) and **Til
 
 `CLAUDE.md` is the governing spec. Everything here implements it; where implementation and spec conflicted, the conflict is documented in the Implementation Addendum at the bottom of that file rather than resolved silently.
 
-**Phases 1–3 are complete.** The full loop runs: research → generate → classify → approve → publish (owned channels) → analytics → learning → weekly plan. Social publishing (Phase 4) is gated behind the connector audit on the operating laptop plus platform credentials, per the spec.
+**Phases 1–5 are built.** The full loop runs: research → generate → classify → approve → publish → analytics → learning → weekly review/plan. All seven publisher adapters are wired (Blog, Email, LinkedIn, Facebook Page, Instagram Reels, YouTube Shorts, TikTok); the social ones wait only on credentials, which the `auth:*` bootstrap scripts mint and write into `.env` themselves.
+
+## Standing it up (credential checklist)
+
+Everything is headless-ready. In order:
+
+1. `npm install && cp .env.example .env` — all kill switches start off.
+2. `npm run audit:connectors` on the operating laptop.
+3. Owned channels first: set `BLOG_DEPLOY_HOOK_URL` (optional), Resend keys + `FOUNDER_EMAIL`, and the product URLs (`RIG_RECEIPTS_URL`, `TILAWAH_LOCK_URL` — UTM attribution hangs off these).
+4. Social, in the audit's order — create each platform app, put its client ID/secret in `.env`, then run the bootstrap, which does the OAuth dance and writes the tokens itself:
+   - `npm run auth:linkedin` (localhost redirect on :8976)
+   - `npm run auth:meta -- <graph-explorer-user-token>` (checks the IG account is Business, not Creator)
+   - `npm run auth:youtube` (device flow — type a code on any device)
+   - `npm run auth:tiktok` (paste-code flow)
+5. Flip switches one at a time: `AUTOPUBLISH_ENABLED=true` plus the platform switch you're enabling.
+6. `npm run publish:approved -- --dry-run` at any point shows exactly what is missing per item — switch state, auth gap with the command to run, asset requirements.
+7. Schedule it: `npm run scheduler` (long-running, catches up missed jobs on wake) or `scripts/crontab.example`.
+
+**Reach reality on the audit-gated platforms:** YouTube uploads stay PRIVATE and TikTok posts stay SELF_ONLY until each platform's audit passes — the adapters default to those levels and say so in every publish log rather than pretending. Instagram needs `ASSET_BASE_URL` (it pulls video from a URL) and a Business account.
 
 ## Setup
 
@@ -79,7 +97,7 @@ Any drift falls back to normal approval. Red rules are never discounted by an ex
 
 ```bash
 npm run typecheck   # tsc --noEmit
-npm test            # 81 tests
+npm test            # 96 tests
 ```
 
 Covers: every illegal state transition throws; edits re-enter classification; blocked is terminal; scores cannot override rules; the scorer fails closed; template integrity in all its failure modes; kill switches under every malformed value; generation routing and slot-value rejection; the publish gate (red/yellow/switches/pause); and the learning thresholds (UNCLASSIFIED below sample size, KILL only after a full underperformance window).

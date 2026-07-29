@@ -2,12 +2,22 @@
 /**
  * Render the pending approval queue to the terminal.
  *
- *   npm run approval:digest
+ *   npm run approval:digest            # terminal only
+ *   npm run approval:digest -- --email # also email it to the founder
+ *
+ * The email path sends the digest to FOUNDER_EMAIL via Resend when
+ * RESEND_API_KEY, EMAIL_FROM_ADDRESS, and FOUNDER_EMAIL are all set — it is a
+ * notification to the founder themselves, not marketing, so it is not behind
+ * the marketing kill switches. With --email but missing config it says so and
+ * still prints; the scheduler passes --email unconditionally for this reason.
  */
 
+import { loadEnvFile } from '../lib/env-file.ts';
 import { listItemsInState } from '../lib/store.ts';
 import { checkPublishAllowed } from '../lib/killswitch.ts';
 import type { ContentItem } from '../lib/types.ts';
+
+loadEnvFile();
 
 function divider(char = '─'): string {
   return char.repeat(72);
@@ -68,45 +78,76 @@ function renderItem(item: ContentItem): string {
   return lines.join('\n');
 }
 
-function main(): void {
+function buildDigest(): { text: string; pendingCount: number } {
   const pending = listItemsInState('awaiting_founder_approval');
   const ready = listItemsInState('auto_publish_ready');
   const blocked = listItemsInState('blocked');
+  const lines: string[] = [];
 
-  console.log('');
-  console.log(divider('═'));
-  console.log(`APPROVAL DIGEST — ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`);
-  console.log(divider('═'));
-  console.log(`  ${pending.length} awaiting approval · ${ready.length} approved and ready · ${blocked.length} blocked`);
+  lines.push(divider('═'));
+  lines.push(`APPROVAL DIGEST — ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`);
+  lines.push(divider('═'));
+  lines.push(`  ${pending.length} awaiting approval · ${ready.length} approved and ready · ${blocked.length} blocked`);
 
   // Surface the publish posture up front. An operator looking at approved
   // content should know immediately whether anything can actually go out.
   const global = process.env.AUTOPUBLISH_ENABLED === 'true';
-  console.log(`  AUTOPUBLISH_ENABLED=${global ? 'true' : 'false (nothing will publish)'}`);
+  lines.push(`  AUTOPUBLISH_ENABLED=${global ? 'true' : 'false (nothing will publish)'}`);
 
   if (ready.length > 0) {
     const platforms = [...new Set(ready.map((i) => i.platform))];
     for (const platform of platforms) {
       const check = checkPublishAllowed(platform);
-      console.log(`    ${platform}: ${check.allowed ? 'enabled' : `blocked — ${check.reason}`}`);
+      lines.push(`    ${platform}: ${check.allowed ? 'enabled' : `blocked — ${check.reason}`}`);
     }
   }
 
   if (pending.length === 0) {
-    console.log('');
-    console.log('Nothing awaiting approval.');
-    console.log('');
+    lines.push('');
+    lines.push('Nothing awaiting approval.');
+  } else {
+    for (const item of pending) {
+      lines.push('');
+      lines.push(renderItem(item));
+    }
+    lines.push('');
+    lines.push(divider());
+  }
+
+  return { text: lines.join('\n'), pendingCount: pending.length };
+}
+
+async function emailDigest(text: string, pendingCount: number): Promise<void> {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM_ADDRESS;
+  const to = process.env.FOUNDER_EMAIL;
+  if (!key || !from || !to) {
+    console.log('(--email requested but RESEND_API_KEY / EMAIL_FROM_ADDRESS / FOUNDER_EMAIL are not all set — printed only.)');
     return;
   }
 
-  for (const item of pending) {
-    console.log('');
-    console.log(renderItem(item));
-  }
-
-  console.log('');
-  console.log(divider());
-  console.log('');
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from,
+      to: [to],
+      subject: `Approval digest — ${pendingCount} item(s) waiting`,
+      text,
+    }),
+  });
+  console.log(response.ok ? `Digest emailed to FOUNDER_EMAIL.` : `Digest email failed (${response.status}) — printed above regardless.`);
 }
 
-main();
+async function main(): Promise<void> {
+  const digest = buildDigest();
+  console.log('');
+  console.log(digest.text);
+  console.log('');
+
+  if (process.argv.includes('--email')) {
+    await emailDigest(digest.text, digest.pendingCount);
+  }
+}
+
+await main();

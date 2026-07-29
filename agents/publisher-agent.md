@@ -1,6 +1,6 @@
 # Publisher Agent
 
-**Status: Phase 4. Not built.** The pre-publish gate is built and runnable (`npm run publish:approved`); the adapters behind it are not.
+**Status: implemented — all seven adapters wired, credential-gated.** Blog and Email publish today; LinkedIn, Facebook Page, Instagram Reels, YouTube Shorts, and TikTok activate when their `auth:*` bootstrap has been run and their kill switch flipped. `npm run publish:approved -- --dry-run` shows the exact gap per item.
 
 ## Adapter requirements
 
