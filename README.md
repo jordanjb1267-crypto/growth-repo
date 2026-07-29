@@ -4,7 +4,7 @@ Organic marketing system for **Rig Receipts** (trucking profitability) and **Til
 
 `CLAUDE.md` is the governing spec. Everything here implements it; where implementation and spec conflicted, the conflict is documented in the Implementation Addendum at the bottom of that file rather than resolved silently.
 
-**Phase 1 is complete. Nothing publishes yet, by design.**
+**Phases 1–3 are complete.** The full loop runs: research → generate → classify → approve → publish (owned channels) → analytics → learning → weekly plan. Social publishing (Phase 4) is gated behind the connector audit on the operating laptop plus platform credentials, per the spec.
 
 ## Setup
 
@@ -19,15 +19,19 @@ Requires Node 22.18+ (native TypeScript type stripping — there is no build ste
 ## Daily loop
 
 ```bash
-npm run daily:research      # Phase 2 — not built
-npm run content:generate    # Phase 2 — not built
-npm run risk:classify       # works
-npm run approval:digest     # works
-npm run approve <id>        # works
-npm run publish:approved    # gate works; adapters are Phase 4
+npm run daily:research      # topics + audience language → analytics/raw/
+npm run content:generate    # daily set for both products → content/drafts/
+npm run risk:classify       # rules → dedup → scores → routed by level
+npm run approval:digest     # review the queue
+npm run approve <id>        # or reject / block / edit
+npm run publish:approved    # Blog + Email adapters live; social held (Phase 4)
+npm run analytics:collect   # manual drops + PostHog funnel → scorecard
+npm run learning:update     # baselines + hook bank (threshold-gated)
+npm run weekly:review       # Fridays — autonomy %, campaign classifications
+npm run weekly:plan         # Sundays — next week's allocation
 ```
 
-Commands belonging to later phases exit with an error rather than doing nothing — a scheduled command that silently no-ops looks identical to a working one in a cron log.
+Two operational notes: social-platform metrics arrive via manual drops (`analytics/raw/manual-metrics-*.json`) until Phase 4 adapters exist, and a connector that fails repeatedly pauses itself — clear it with `npm run connector:resume <platform>` after investigating.
 
 ## How content moves
 
@@ -75,10 +79,10 @@ Any drift falls back to normal approval. Red rules are never discounted by an ex
 
 ```bash
 npm run typecheck   # tsc --noEmit
-npm test            # 56 tests
+npm test            # 81 tests
 ```
 
-Covers: every illegal state transition throws; edits re-enter classification; blocked is terminal; scores cannot override rules; the scorer fails closed; template integrity in all its failure modes; and kill switches under every malformed value.
+Covers: every illegal state transition throws; edits re-enter classification; blocked is terminal; scores cannot override rules; the scorer fails closed; template integrity in all its failure modes; kill switches under every malformed value; generation routing and slot-value rejection; the publish gate (red/yellow/switches/pause); and the learning thresholds (UNCLASSIFIED below sample size, KILL only after a full underperformance window).
 
 ## Layout
 
@@ -91,8 +95,12 @@ Covers: every illegal state transition throws; edits re-enter classification; bl
 | `/templates` | Founder-approved, hash-sealed templates |
 | `/content` | Items, in directories matching their state |
 | `/memory` | The six learning banks |
-| `/src/risk` | Rules, dedup, scoring, classification |
+| `/site/posts` | Published blog posts (the Blog adapter's output) |
+| `/src/risk` | Rules, dedup, scoring, classification, routing |
 | `/src/state` | The state machine |
+| `/src/content` | Research context + generation |
+| `/src/publish` | Adapter framework, Blog and Email adapters |
+| `/src/analytics` | Scorecard, PostHog funnel, learning math |
 | `/src/llm` | Provider interface (`claude-cli` now, API backend stubbed) |
 
 ## Cost

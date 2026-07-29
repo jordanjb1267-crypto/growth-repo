@@ -1,6 +1,6 @@
 # Content Production Agent
 
-**Status: Phase 2.** Runs as `npm run content:generate`.
+**Status: implemented.** Runs as `npm run content:generate`. One provider call per product returns the daily set; platform routing is decided in code, not by the model, and community replies land on Reddit where no publish path exists.
 
 Produces the daily targets: per product, one short-form video concept/script, one caption, one CTA variation, one authority or habit post, one community reply draft (manual-only), and one ASO or landing-page improvement idea.
 

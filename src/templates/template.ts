@@ -96,6 +96,43 @@ export function listTemplates(product: Product): Template[] {
     .map((f) => JSON.parse(readFileSync(join(dir, f), 'utf8')) as Template);
 }
 
+/**
+ * Re-derive a template exemption for an existing item.
+ *
+ * The exemption is never trusted from a stored record. At classification time
+ * the template is re-loaded, re-rendered with the item's stored slot values,
+ * and the output compared field-by-field against the item's actual text. All
+ * three integrity conditions are therefore re-checked on every classification:
+ * a template edited since approval, a slot value that now trips a rule (rules
+ * evolve), or item text that drifted from the render (e.g. a founder edit) all
+ * void the exemption and drop the item back to normal approval.
+ */
+export function deriveExemption(item: {
+  product: Product;
+  template_id: string | null;
+  template_slots: Record<string, string> | null;
+  hook: string;
+  full_content: string;
+  caption: string;
+  cta: string;
+}): TemplateExemption | null {
+  if (!item.template_id || !item.template_slots) return null;
+
+  const template = loadTemplate(item.product, item.template_id);
+  if (!template) return null;
+
+  const rendered = renderTemplate(template, item.template_slots);
+  if (!rendered.ok) return null;
+
+  const matches =
+    rendered.hook === item.hook &&
+    rendered.body === item.full_content &&
+    rendered.caption === item.caption &&
+    rendered.cta === item.cta;
+
+  return matches ? rendered.exemption : null;
+}
+
 export type RenderResult =
   | { ok: true; hook: string; body: string; caption: string; cta: string; exemption: TemplateExemption }
   | { ok: false; failures: string[]; slot_hits: RuleHit[] };

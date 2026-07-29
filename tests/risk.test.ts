@@ -96,6 +96,19 @@ describe('red rules', () => {
     assert.ok(!fictional.some((h) => h.id === 'RED-RR-REAL-PAPERWORK'));
   });
 
+  it('requires the actual-ness term to sit against the paperwork term', () => {
+    // Regression: caught live. "rate con" and a generic "real" far apart in the
+    // same post is ordinary educational copy, not a real-paperwork claim.
+    const hits = evaluateRules(
+      'So when a rate con comes across, none of the fixed costs show up. The real number is what is left after all of them.',
+      'Rig Receipts',
+    );
+    assert.ok(!hits.some((h) => h.id === 'RED-RR-REAL-PAPERWORK'));
+
+    const screenshot = evaluateRules('Quick screenshot of my rate confirmation from Tuesday.', 'Rig Receipts');
+    assert.ok(screenshot.some((h) => h.id === 'RED-RR-REAL-PAPERWORK'));
+  });
+
   it('does not fire on clean cost-per-mile education', () => {
     const hits = evaluateRules(`${CLEAN_RR.hook} ${CLEAN_RR.body}`, 'Rig Receipts');
     assert.deepEqual(
@@ -139,6 +152,29 @@ describe('yellow rules', () => {
   it('flags a strong claim', () => {
     const hits = evaluateRules('The only app that will change your life.', 'Tilawah Lock');
     assert.ok(hits.some((h) => h.id === 'YEL-STRONG-CLAIM'));
+  });
+
+  it('flags Reddit-isms but not ordinary words starting with "op"', () => {
+    // Regression: caught live. The old pattern (op|u/|r/)\w+ matched "operators".
+    const clean = evaluateRules('Most operators have never seen that number written down.', 'Rig Receipts');
+    assert.ok(!clean.some((h) => h.id === 'YEL-COMMUNITY-REPLY'));
+
+    const reddit = evaluateRules('Saw this over on r/Truckers and the OP asked about fuel cards.', 'Rig Receipts');
+    assert.ok(reddit.some((h) => h.id === 'YEL-COMMUNITY-REPLY'));
+  });
+});
+
+describe('routing', () => {
+  it('never routes a draft-only platform to auto-publish, whatever the level', async () => {
+    const { routeFor } = await import('../src/risk/route.ts');
+
+    assert.equal(routeFor('green', 'Reddit').to, 'awaiting_founder_approval');
+    assert.equal(routeFor('green', 'Facebook Groups').to, 'awaiting_founder_approval');
+    assert.equal(routeFor('green', 'X').to, 'awaiting_founder_approval');
+    assert.equal(routeFor('red', 'Reddit').to, 'blocked');
+
+    assert.equal(routeFor('green', 'Instagram Reels').to, 'auto_publish_ready');
+    assert.equal(routeFor('yellow', 'Instagram Reels').to, 'awaiting_founder_approval');
   });
 });
 

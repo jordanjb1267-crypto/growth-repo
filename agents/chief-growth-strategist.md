@@ -1,6 +1,6 @@
 # Chief Growth Strategist
 
-**Status: Phase 2.**
+**Status: implemented** as `npm run weekly:plan` — deterministic allocation from campaign history. Volume never rises automatically; only emphasis moves.
 
 Sets the week's direction. Reads the weekly review and decides where effort goes next, rather than spreading it evenly across every campaign by default.
 

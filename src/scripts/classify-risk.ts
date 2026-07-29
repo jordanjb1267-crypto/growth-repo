@@ -12,23 +12,13 @@
  */
 
 import { classify } from '../risk/classify.ts';
+import { routeFor } from '../risk/route.ts';
+import { deriveExemption } from '../templates/template.ts';
 import { listItemsInState, moveItem } from '../lib/store.ts';
 import { transition } from '../state/machine.ts';
 import type { ContentItem, ContentState, RiskLevel } from '../lib/types.ts';
 
 const skipScoring = process.argv.includes('--no-scoring');
-
-/** Where an item goes once its level is known. */
-function destinationFor(level: RiskLevel): ContentState {
-  switch (level) {
-    case 'green':
-      return 'auto_publish_ready';
-    case 'yellow':
-      return 'awaiting_founder_approval';
-    case 'red':
-      return 'blocked';
-  }
-}
 
 function recommendedAction(level: RiskLevel): string {
   switch (level) {
@@ -52,6 +42,12 @@ async function processItem(item: ContentItem): Promise<{ id: string; level: Risk
     moveItem(current, previous);
   }
 
+  // The exemption is re-derived here, never read from a stored record: the
+  // template is re-loaded and re-rendered with the item's slot values, and the
+  // output compared against the item's actual text. Any drift — template
+  // edited, rules evolved, item text changed — silently voids it.
+  const exemption = deriveExemption(current);
+
   const classification = await classify(
     {
       id: current.id,
@@ -62,10 +58,12 @@ async function processItem(item: ContentItem): Promise<{ id: string; level: Risk
       body: current.full_content,
       caption: current.caption,
       cta: current.cta,
-      templateExemption: current.classification?.template_exemption ?? null,
+      templateExemption: exemption,
     },
     { skipScoring },
   );
+
+  const route = routeFor(classification.level, current.platform);
 
   const beforeClassified = current.status;
   current = transition(current, 'risk_classified', 'Classification complete.');
@@ -73,17 +71,16 @@ async function processItem(item: ContentItem): Promise<{ id: string; level: Risk
     ...current,
     classification,
     risk_level: classification.level,
-    approval_reason: classification.rationale,
-    recommended_action: recommendedAction(classification.level),
+    approval_reason: route.note ? `${classification.rationale} ${route.note}` : classification.rationale,
+    recommended_action: route.note ? 'post manually if wanted — this channel never auto-publishes' : recommendedAction(classification.level),
   };
   moveItem(current, beforeClassified);
 
-  const destination = destinationFor(classification.level);
   const beforeRoute = current.status;
-  current = transition(current, destination, classification.rationale);
+  current = transition(current, route.to, route.note ?? classification.rationale);
   moveItem(current, beforeRoute);
 
-  return { id: current.id, level: classification.level, to: destination };
+  return { id: current.id, level: classification.level, to: route.to };
 }
 
 async function main(): Promise<void> {

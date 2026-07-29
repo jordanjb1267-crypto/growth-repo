@@ -1,6 +1,6 @@
 # Audience Mining Agent
 
-**Status: Phase 2.**
+**Status: partially implemented.** Daily research captures audience language and objections into analytics/raw/; folding them into the memory banks (second-independent-appearance rule) is still manual.
 
 Maintains `/memory/audience-language-bank.json` and `/memory/objection-bank.json` — the register the audience actually uses, and the objections they actually raise.
 

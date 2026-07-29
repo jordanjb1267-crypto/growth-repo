@@ -20,6 +20,7 @@
     "block": "node src/scripts/block.ts",
     "edit": "node src/scripts/edit.ts",
     "seal:template": "node src/scripts/seal-template.ts",
+    "connector:resume": "node src/scripts/connector-resume.ts",
     "publish:approved": "node src/scripts/publish-approved.ts",
     "analytics:collect": "node src/scripts/collect-analytics.ts",
     "learning:update": "node src/scripts/update-memory.ts",

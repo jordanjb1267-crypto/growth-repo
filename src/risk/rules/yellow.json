@@ -168,9 +168,12 @@
       "applies_to": ["*"],
       "patterns": [
         "\\b(?:great question|thanks for (?:asking|sharing)|to answer your question|as (?:someone|a dev) who built)\\b",
-        "\\b(?:op|u/|r/)\\w+",
+        "\\b[ur]/\\w+",
+        "\\bthe op\\b",
+        "\\bop (?:said|asked|wrote|mentioned|posted)\\b",
         "\\breplying to\\b"
-      ]
+      ],
+      "notes": "An early version used \\b(?:op|u/|r/)\\w+, which matched every word starting with 'op' — 'operators', 'options'. Reddit-isms only."
     }
   ]
 }

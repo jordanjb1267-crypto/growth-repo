@@ -125,6 +125,20 @@ export interface TemplateExemption {
 }
 
 /**
+ * Explicit founder-approval record.
+ *
+ * The state machine already guarantees that Yellow content only reaches
+ * `auto_publish_ready` through a founder action, but the publisher re-checks
+ * this record at the last moment before a network call — defense in depth,
+ * self-contained in the item rather than reconstructed from logs.
+ */
+export interface FounderApproval {
+  by: 'founder';
+  at: string;
+  note: string | null;
+}
+
+/**
  * A content item. Matches the spec's approval-queue JSON shape, with
  * classification detail and state history added.
  */
@@ -148,6 +162,16 @@ export interface ContentItem {
   classification: Classification | null;
   /** Set only when rendered from a template. */
   template_id: string | null;
+  /**
+   * Slot values the template was rendered with. Stored so the exemption can be
+   * RE-DERIVED at classification time by re-rendering and comparing — an
+   * exemption is never trusted from a stored record, because the item text or
+   * the template could have changed since rendering.
+   */
+  template_slots: Record<string, string> | null;
+  /** Set by founder approval; cleared by any edit. Checked again by the
+   *  publisher immediately before sending. */
+  approval: FounderApproval | null;
   /** Populated at publish time. Required by acceptance criteria 9 and 10 —
    *  platforms give us no custom field to carry our own content ID, so the
    *  mapping has to live here. */

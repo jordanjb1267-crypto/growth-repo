@@ -103,12 +103,13 @@
       "category": "sensitive-documents",
       "reason": "References real freight paperwork with identifying detail. The spec forbids using real sensitive freight paperwork in public marketing and requires public rate-card examples to be fictional or privacy-redacted.",
       "applies_to": ["Rig Receipts"],
-      "all_of": [
-        "\\b(?:rate con|rate confirmation|bol|bill of lading|load confirmation|pro number|scale ticket)\\b",
-        "\\b(?:actual|real|my own|screenshot of my|from last week's|attached is)\\b"
+      "patterns": [
+        "\\b(?:actual|real|my own|my|our|this week's|last week's|attached) (?:\\w+ )?(?:rate con(?:firmation)?|bol|bill of lading|load confirmation|pro number|scale ticket)s?\\b",
+        "\\bscreenshot of (?:a |the |my |our )?(?:\\w+ )?(?:rate con(?:firmation)?|bol|bill of lading|load confirmation|pro number|scale ticket)s?\\b",
+        "\\b(?:rate con(?:firmation)?|bol|bill of lading|load confirmation|pro number|scale ticket)s? from (?:my|our|a real|an actual|last week's|this week's)\\b"
       ],
       "none_of": ["\\b(?:fictional|example only|illustrative|redacted|anonymi[sz]ed|made[- ]up|sample|for illustration)\\b"],
-      "notes": "The none_of clause is what lets a properly-labelled fictional example through."
+      "notes": "Proximity patterns, not document-wide co-occurrence: an early version matched any post containing both 'rate con' and a generic 'real' anywhere, which blocked clean educational copy ('the real number'). The actual-ness term must sit against the paperwork term. The none_of clause is what lets a properly-labelled fictional example through."
     },
     {
       "id": "RED-RR-UNSAFE-TRUCKING",

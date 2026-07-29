@@ -1,6 +1,6 @@
 # Learning Agent
 
-**Status: Phase 2.** Runs as `npm run learning:update` and `npm run weekly:review`.
+**Status: implemented.** Runs as `npm run learning:update` and `npm run weekly:review`. Deterministic — no model call; every classification is reproducible from the scorecard.
 
 Folds collected analytics back into the memory banks so the next week is better informed than the last.
 

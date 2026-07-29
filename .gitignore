@@ -25,3 +25,4 @@ assets/**/*.mov
 assets/**/*.png
 assets/**/*.jpg
 assets/**/*.jpeg
+logs/*.json

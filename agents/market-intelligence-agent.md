@@ -1,6 +1,6 @@
 # Market Intelligence Agent
 
-**Status: Phase 2.** Runs as `npm run daily:research`.
+**Status: implemented.** Runs as `npm run daily:research`. When the backend has no live web access, topics are marked `model-prior` — usable for angles, never for facts (the unverified-statistic rule enforces this downstream).
 
 Finds what the two audiences are currently discussing, so content responds to something real rather than restating the brand's own positioning back at itself.
 

@@ -13,10 +13,8 @@
  * condition held.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { paths } from '../lib/paths.ts';
-import { mostSevere, PRODUCT_SLUGS } from '../lib/types.ts';
+import { loadBrandContext } from '../content/context.ts';
+import { mostSevere } from '../lib/types.ts';
 import { evaluateRules, levelFromHits } from './evaluate.ts';
 import {
   findClosestPublished,
@@ -57,15 +55,6 @@ export interface ClassifyOptions {
   /** Skip the model call. Used by tests and by any path that must stay
    *  deterministic; the result fails closed to Yellow, never Green. */
   skipScoring?: boolean;
-}
-
-function loadBrandContext(product: Product): string {
-  const file = join(paths.brands, `${PRODUCT_SLUGS[product]}.md`);
-  const shared = join(paths.brands, 'shared-rules.md');
-  const parts: string[] = [];
-  if (existsSync(shared)) parts.push(readFileSync(shared, 'utf8'));
-  if (existsSync(file)) parts.push(readFileSync(file, 'utf8'));
-  return parts.join('\n\n');
 }
 
 function duplicateLevel(similarity: number, hasTemplateExemption: boolean): RiskLevel {

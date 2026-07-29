@@ -1,23 +1,34 @@
 #!/usr/bin/env node
 /**
- * Publish approved content.
+ * Publish approved content through the adapters that exist.
  *
- * Phase 1 has no publisher adapters, so this cannot publish anything. It still
- * runs the full pre-publish gate, because that gate is a Phase 1 deliverable
- * and the founder should be able to see exactly what would and would not go out
- * before any adapter exists.
+ *   npm run publish:approved              # publish (kill switches still apply)
+ *   npm run publish:approved -- --dry-run # report the gate without publishing
  *
- *   npm run publish:approved
+ * Phase 3 ships the owned-channel adapters (Blog, Email). Social platforms
+ * are Phase 4 and are HELD with a reason, never silently skipped.
  */
 
 import { listItemsInState } from '../lib/store.ts';
 import { checkPublishAllowed } from '../lib/killswitch.ts';
+import { publishItem } from '../publish/adapter.ts';
+import { BlogAdapter } from '../publish/blog.ts';
+import { EmailAdapter } from '../publish/email.ts';
+import type { Platform } from '../lib/types.ts';
+import type { PublisherAdapter } from '../publish/adapter.ts';
 
-function main(): void {
+const dryRun = process.argv.includes('--dry-run');
+
+const ADAPTERS: Partial<Record<Platform, PublisherAdapter>> = {
+  Blog: new BlogAdapter(),
+  Email: new EmailAdapter(),
+};
+
+async function main(): Promise<void> {
   const ready = listItemsInState('auto_publish_ready');
 
   console.log('');
-  console.log('PRE-PUBLISH GATE');
+  console.log(dryRun ? 'PRE-PUBLISH GATE (dry run)' : 'PUBLISH');
   console.log('─'.repeat(72));
 
   if (ready.length === 0) {
@@ -26,36 +37,54 @@ function main(): void {
     return;
   }
 
-  let wouldPublish = 0;
-  let wouldHold = 0;
+  let published = 0;
+  let held = 0;
 
   for (const item of ready) {
-    const check = checkPublishAllowed(item.platform);
+    const adapter = ADAPTERS[item.platform];
 
-    // Two independent refusals: the risk level and the kill switches. Neither
-    // is sufficient on its own to let something out.
-    if (item.risk_level === 'red') {
-      console.log(`  ${item.id}  HOLD — classified Red. Red content cannot publish at all.`);
-      wouldHold += 1;
-      continue;
-    }
-    if (!check.allowed) {
-      console.log(`  ${item.id}  HOLD — ${check.reason}`);
-      wouldHold += 1;
+    if (!adapter) {
+      console.log(`  ${item.id}  HOLD — no adapter for ${item.platform} yet (Phase 4; see audit/CONNECTOR_AUDIT.md for order).`);
+      held += 1;
       continue;
     }
 
-    console.log(`  ${item.id}  READY — ${item.platform} (${check.reason})`);
-    wouldPublish += 1;
+    if (dryRun) {
+      const switches = checkPublishAllowed(item.platform);
+      const auth = await adapter.validateAuth(process.env);
+      const content = adapter.validateContent(item);
+      const blockers = [
+        item.risk_level === 'red' ? 'classified Red' : null,
+        item.risk_level === 'yellow' && !item.approval ? 'yellow without approval record' : null,
+        item.platform === 'Email' && !item.approval ? 'email requires approval regardless of level' : null,
+        switches.allowed ? null : switches.reason,
+        auth.ok ? null : `auth: ${auth.detail}`,
+        content.ok ? null : `content: ${content.detail}`,
+      ].filter((b): b is string => b !== null);
+
+      if (blockers.length === 0) {
+        console.log(`  ${item.id}  WOULD PUBLISH → ${item.platform}`);
+        published += 1;
+      } else {
+        console.log(`  ${item.id}  HOLD — ${blockers.join('; ')}`);
+        held += 1;
+      }
+      continue;
+    }
+
+    const attempt = await publishItem(item, adapter);
+    if (attempt.published) {
+      console.log(`  ${item.id}  PUBLISHED → ${item.platform} (${attempt.platform_post_id})`);
+      published += 1;
+    } else {
+      console.log(`  ${item.id}  HOLD — ${attempt.reason}`);
+      held += 1;
+    }
   }
 
   console.log('');
-  console.log(`${wouldPublish} item(s) would publish, ${wouldHold} held.`);
-  console.log('');
-  console.log('No publisher adapters exist yet (Phase 4), so nothing was sent.');
-  console.log('See /audit/RISKY_CONNECTORS.md for which platforms are actually reachable');
-  console.log('for a single-operator setup before building an adapter for them.');
+  console.log(`${published} ${dryRun ? 'would publish' : 'published'}, ${held} held.`);
   console.log('');
 }
 
-main();
+await main();

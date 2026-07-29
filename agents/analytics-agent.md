@@ -1,6 +1,6 @@
 # Analytics Agent
 
-**Status: Phase 3.** Runs as `npm run analytics:collect`.
+**Status: implemented.** Runs as `npm run analytics:collect`. Sources: manual metric drops in analytics/raw/ (how social numbers arrive before Phase 4), and PostHog funnel events attributed via utm_campaign = content ID. Nothing is estimated.
 
 Pulls per-item metrics from connected platforms and maps them back to the originating content ID.
 

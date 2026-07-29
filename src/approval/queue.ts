@@ -51,7 +51,14 @@ export function approveItem(id: string, note?: string): ContentItem {
   }
 
   const approved = transition(item, 'auto_publish_ready', note ?? 'Founder approved.', 'founder');
-  return persist({ ...approved, founder_note: note ?? null }, previous);
+  return persist(
+    {
+      ...approved,
+      founder_note: note ?? null,
+      approval: { by: 'founder', at: new Date().toISOString(), note: note ?? null },
+    },
+    previous,
+  );
 }
 
 export function rejectItem(id: string, note: string): ContentItem {
@@ -94,9 +101,11 @@ export function editItem(
     {
       ...edited,
       ...changes,
-      // The old classification described different text. Clearing it prevents a
-      // stale Green from being read as current.
+      // The old classification and approval described different text. Clearing
+      // both prevents a stale Green — or a stale approval — being read as
+      // covering the new content.
       classification: null,
+      approval: null,
       founder_note: note ?? null,
     },
     previous,
