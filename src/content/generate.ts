@@ -28,6 +28,7 @@ import {
   DEFAULT_CAMPAIGN,
   loadBrandContext,
   loadCampaignBriefs,
+  loadLatestPlan,
   loadMemoryExtract,
   loadTodaysResearch,
 } from './context.ts';
@@ -196,9 +197,18 @@ export async function generateForProduct(
         ].join('\n')
       : 'No approved templates exist for this product; omit "template_slots".';
 
+  // The weekly plan steers emphasis: lead campaign first, killed campaigns
+  // excluded. This is the loop closing — learning output shaping creation.
+  const plan = loadLatestPlan()?.products[product] ?? null;
+  const planSection = plan
+    ? `This week's plan (from weekly:plan): lead with the campaign "${plan.lead ?? DEFAULT_CAMPAIGN[product]}". Active campaigns this week: ${plan.active.join(' · ') || DEFAULT_CAMPAIGN[product]}. Draft the video concept for the lead campaign; other items may use any active campaign. Do not draft for campaigns not listed as active.`
+    : 'No weekly plan exists yet — draw angles from any campaign brief.';
+
   const prompt = [
     `Product: ${product}`,
     `Date: ${dayId()}`,
+    '',
+    planSection,
     '',
     'Memory extract:',
     loadMemoryExtract(),

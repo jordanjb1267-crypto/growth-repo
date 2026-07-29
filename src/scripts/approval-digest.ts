@@ -15,9 +15,34 @@
 import { loadEnvFile } from '../lib/env-file.ts';
 import { listItemsInState } from '../lib/store.ts';
 import { checkPublishAllowed } from '../lib/killswitch.ts';
+import { expireItem, findExpired } from '../approval/queue.ts';
 import type { ContentItem } from '../lib/types.ts';
 
 loadEnvFile();
+
+const DEFAULT_EXPIRY_HOURS = 168; // one week
+
+/**
+ * Expire stale approval requests before rendering (spec addendum A4: an
+ * approval request that times out must not linger as publishable). Expired
+ * items land in content/rejected and can be revived deliberately via edit.
+ */
+function sweepExpired(): string[] {
+  const raw = Number.parseInt(process.env.APPROVAL_EXPIRY_HOURS ?? '', 10);
+  const hours = Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_EXPIRY_HOURS;
+  const stale = findExpired(listItemsInState('awaiting_founder_approval'), hours);
+
+  const expired: string[] = [];
+  for (const item of stale) {
+    try {
+      expireItem(item.id, hours);
+      expired.push(item.id);
+    } catch (error) {
+      console.error(`  could not expire ${item.id}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  return expired;
+}
 
 function divider(char = '─'): string {
   return char.repeat(72);
@@ -79,6 +104,7 @@ function renderItem(item: ContentItem): string {
 }
 
 function buildDigest(): { text: string; pendingCount: number } {
+  const expired = sweepExpired();
   const pending = listItemsInState('awaiting_founder_approval');
   const ready = listItemsInState('auto_publish_ready');
   const blocked = listItemsInState('blocked');
@@ -93,6 +119,10 @@ function buildDigest(): { text: string; pendingCount: number } {
   // content should know immediately whether anything can actually go out.
   const global = process.env.AUTOPUBLISH_ENABLED === 'true';
   lines.push(`  AUTOPUBLISH_ENABLED=${global ? 'true' : 'false (nothing will publish)'}`);
+
+  if (expired.length > 0) {
+    lines.push(`  Expired without a decision (now in content/rejected, revivable via edit): ${expired.join(', ')}`);
+  }
 
   if (ready.length > 0) {
     const platforms = [...new Set(ready.map((i) => i.platform))];

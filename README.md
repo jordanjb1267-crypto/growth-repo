@@ -8,7 +8,7 @@ Organic marketing system for **Rig Receipts** (trucking profitability) and **Til
 
 ## Standing it up (credential checklist)
 
-Everything is headless-ready. In order:
+Everything is headless-ready. **`npm run doctor` is the companion for this whole section** — it reports per-channel readiness with the exact next command, and the loop is: run doctor → do the next thing it names → run doctor again, until every channel you want reads READY. In order:
 
 1. `npm install && cp .env.example .env` — all kill switches start off.
 2. `npm run audit:connectors` on the operating laptop.
@@ -20,7 +20,8 @@ Everything is headless-ready. In order:
    - `npm run auth:tiktok` (paste-code flow)
 5. Flip switches one at a time: `AUTOPUBLISH_ENABLED=true` plus the platform switch you're enabling.
 6. `npm run publish:approved -- --dry-run` at any point shows exactly what is missing per item — switch state, auth gap with the command to run, asset requirements.
-7. Schedule it: `npm run scheduler` (long-running, catches up missed jobs on wake) or `scripts/crontab.example`.
+7. Schedule it: `npm run scheduler` (long-running, catches up missed jobs on wake), `scripts/crontab.example`, or on macOS `scripts/launchd.example.plist` (cron does not run with the lid closed; launchd + the scheduler's catch-up does the right thing).
+8. Blog hosting: `npm run site:build` renders `site/posts/` to `site/dist/` with `assets/` mirrored alongside — deploy `site/dist` to any static host and point `ASSET_BASE_URL` at `https://<host>/assets`, which satisfies Instagram's pull-from-URL requirement with no extra infrastructure.
 
 **Reach reality on the audit-gated platforms:** YouTube uploads stay PRIVATE and TikTok posts stay SELF_ONLY until each platform's audit passes — the adapters default to those levels and say so in every publish log rather than pretending. Instagram needs `ASSET_BASE_URL` (it pulls video from a URL) and a Business account.
 
@@ -49,7 +50,12 @@ npm run weekly:review       # Fridays — autonomy %, campaign classifications
 npm run weekly:plan         # Sundays — next week's allocation
 ```
 
-Two operational notes: social-platform metrics arrive via manual drops (`analytics/raw/manual-metrics-*.json`) until Phase 4 adapters exist, and a connector that fails repeatedly pauses itself — clear it with `npm run connector:resume <platform>` after investigating.
+Operational notes:
+- Social-platform metrics arrive via manual drops (`analytics/raw/manual-metrics-*.json`) until platform analytics APIs are added; the adapters publish, the founder reads platform dashboards.
+- A connector that fails repeatedly pauses itself — clear it with `npm run connector:resume <platform>` after investigating.
+- A platform warning on a published item: `npm run retract <id> "warning text"` — marks the item retracted and pauses that channel until you resume it. Take the content down on the platform itself first.
+- Approval requests untouched for `APPROVAL_EXPIRY_HOURS` (default 168) expire out of the queue during the daily digest — nothing stale stays publishable.
+- `npm run typecheck && npm test` also run in CI on every push.
 
 ## How content moves
 
@@ -97,7 +103,8 @@ Any drift falls back to normal approval. Red rules are never discounted by an ex
 
 ```bash
 npm run typecheck   # tsc --noEmit
-npm test            # 96 tests
+npm test            # 101 tests
+npm run doctor      # standup readiness report
 ```
 
 Covers: every illegal state transition throws; edits re-enter classification; blocked is terminal; scores cannot override rules; the scorer fails closed; template integrity in all its failure modes; kill switches under every malformed value; generation routing and slot-value rejection; the publish gate (red/yellow/switches/pause); and the learning thresholds (UNCLASSIFIED below sample size, KILL only after a full underperformance window).

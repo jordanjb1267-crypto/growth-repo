@@ -50,7 +50,9 @@ const GOOD_RESPONSE = JSON.stringify({
     },
   ],
   template_slots: { 'RR-CPM-BASICS-001': { cost_category: 'tires' } },
-  aso_idea: 'Add "cost per mile calculator" to the store listing subtitle.',
+  // Empty deliberately: a non-empty idea appends to the real analytics/daily
+  // ideas file, and tests must not write into production output.
+  aso_idea: '',
 });
 
 describe('content generation', () => {

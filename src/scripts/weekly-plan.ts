@@ -50,6 +50,8 @@ function main(): void {
     '',
   ];
 
+  const machinePlan: Record<string, { lead: string | null; active: string[] }> = {};
+
   for (const product of PRODUCTS) {
     const briefs = loadCampaignBriefs(product);
     const rows = briefs.map((brief) => {
@@ -69,6 +71,10 @@ function main(): void {
     });
 
     const active = rows.filter((r) => !['KILL', 'ARCHIVE'].includes(r.classification));
+    machinePlan[product] = {
+      lead: rows.find((r) => r.classification === 'SCALE')?.name ?? active[0]?.name ?? null,
+      active: active.map((r) => r.name),
+    };
     lines.push(
       `## ${product}`,
       '',
@@ -94,7 +100,18 @@ function main(): void {
   const planFile = join(paths.analytics, 'weekly', `${week}-plan.md`);
   mkdirSync(join(paths.analytics, 'weekly'), { recursive: true });
   writeFileSync(planFile, lines.join('\n'), 'utf8');
+
+  // Machine-readable twin — content generation reads this so the week's
+  // allocation actually steers what gets drafted, closing the learning loop.
+  const latestFile = join(paths.analytics, 'weekly', 'latest-plan.json');
+  writeFileSync(
+    latestFile,
+    `${JSON.stringify({ $schema_version: 1, week, generated_at: new Date().toISOString(), products: machinePlan }, null, 2)}\n`,
+    'utf8',
+  );
+
   console.log(`Wrote ${planFile}`);
+  console.log(`Wrote ${latestFile}`);
 }
 
 main();

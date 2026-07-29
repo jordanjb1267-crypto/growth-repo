@@ -19,6 +19,7 @@ import { listAllItems, moveItem } from '../lib/store.ts';
 import { transition } from '../state/machine.ts';
 import { readScorecard } from '../analytics/scorecard.ts';
 import { classifyGroup, loadThresholds, platformBaselines } from '../analytics/learning.ts';
+import { foldAudienceBanks } from '../analytics/banks.ts';
 import type { ScorecardEntry } from '../analytics/scorecard.ts';
 
 interface HookRecord {
@@ -34,11 +35,18 @@ interface HookRecord {
 }
 
 function main(): void {
+  // Audience banks fold from research regardless of publish volume — language
+  // and objections accumulate before anything has shipped.
+  const folded = foldAudienceBanks();
+  console.log(
+    `Audience banks: ${folded.promoted_language} language update(s), ${folded.promoted_objections} objection update(s), ${folded.candidates_waiting} candidate(s) awaiting a second independent appearance.`,
+  );
+
   const scorecard = readScorecard();
   const entries = Object.values(scorecard.items);
 
   if (entries.length === 0) {
-    console.log('Scorecard is empty — nothing to learn from yet.');
+    console.log('Scorecard is empty — no performance data to learn from yet.');
     return;
   }
 

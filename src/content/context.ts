@@ -107,6 +107,19 @@ export function researchPathFor(date = new Date()): string {
   return join(paths.analytics, 'raw', `${date.toISOString().slice(0, 10)}-research.json`);
 }
 
+export interface WeeklyPlanFile {
+  $schema_version: 1;
+  week: string;
+  products: Record<string, { lead: string | null; active: string[] }>;
+}
+
+/** The current week's allocation, written by weekly:plan. Null before the
+ *  first plan exists — generation then falls back to the campaign briefs. */
+export function loadLatestPlan(): WeeklyPlanFile | null {
+  const parsed = readJsonIfPresent(join(paths.analytics, 'weekly', 'latest-plan.json')) as WeeklyPlanFile | null;
+  return parsed && typeof parsed.products === 'object' ? parsed : null;
+}
+
 export function loadTodaysResearch(date = new Date()): ResearchFile | null {
   const parsed = readJsonIfPresent(researchPathFor(date)) as ResearchFile | null;
   return parsed && Array.isArray(parsed.topics) ? parsed : null;

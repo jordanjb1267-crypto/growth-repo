@@ -48,9 +48,12 @@ const LEGAL: Record<ContentState, readonly ContentState[]> = {
   scheduled: ['published', 'publish_failed', 'blocked'],
   publish_failed: ['scheduled', 'blocked'],
   published: ['analytics_collected', 'retracted'],
-  analytics_collected: ['learned_from'],
-  learned_from: ['memory_updated'],
-  memory_updated: [],
+  // A platform warning can arrive at any point after publication — including
+  // long after learning completed — so every post-publication state keeps a
+  // path to `retracted`.
+  analytics_collected: ['learned_from', 'retracted'],
+  learned_from: ['memory_updated', 'retracted'],
+  memory_updated: ['retracted'],
 
   rejected: ['edited'],
   expired: ['edited', 'rejected'],
@@ -59,7 +62,7 @@ const LEGAL: Record<ContentState, readonly ContentState[]> = {
 };
 
 /** States from which no further transition is possible. */
-export const TERMINAL_STATES: readonly ContentState[] = ['memory_updated', 'blocked', 'retracted'];
+export const TERMINAL_STATES: readonly ContentState[] = ['blocked', 'retracted'];
 
 /**
  * On-disk home for each state. Items are moved between these directories as

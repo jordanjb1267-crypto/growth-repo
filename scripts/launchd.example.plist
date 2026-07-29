@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  macOS launchd unit for the scheduler — the right tool on a laptop, where
+  cron does not run with the lid closed and the scheduler's catch-up-on-wake
+  behaviour matters.
+
+  Install:
+    1. Fix the two paths below (node binary and repo).
+    2. cp scripts/launchd.example.plist ~/Library/LaunchAgents/com.growthos.scheduler.plist
+    3. launchctl load ~/Library/LaunchAgents/com.growthos.scheduler.plist
+
+  Logs land in the repo's logs/ directory (gitignored).
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.growthos.scheduler</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/node</string>
+    <string>src/scripts/scheduler.ts</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/ABSOLUTE/PATH/TO/growth-repo</string>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/ABSOLUTE/PATH/TO/growth-repo/logs/launchd.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/ABSOLUTE/PATH/TO/growth-repo/logs/launchd.log</string>
+</dict>
+</plist>

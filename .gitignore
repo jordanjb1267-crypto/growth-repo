@@ -27,3 +27,4 @@ assets/**/*.jpg
 assets/**/*.jpeg
 logs/*.json
 logs/*.log
+site/dist/

@@ -110,6 +110,23 @@ export function resumeConnector(platform: Platform): void {
   writeHealth(health);
 }
 
+/**
+ * Pause a connector deliberately — the spec's platform-warning rule. Nothing
+ * publishes to this platform until the founder investigates and runs
+ * connector:resume.
+ */
+export function pauseConnector(platform: Platform, reason: string): void {
+  const health = readHealth();
+  const current = health[platform];
+  health[platform] = {
+    consecutive_failures: current?.consecutive_failures ?? 0,
+    paused: true,
+    last_error: reason,
+    updated_at: new Date().toISOString(),
+  };
+  writeHealth(health);
+}
+
 // ---------------------------------------------------------------------------
 // Attribution — platform-post-ID ↔ content-ID map (acceptance criteria 9/10)
 // ---------------------------------------------------------------------------
