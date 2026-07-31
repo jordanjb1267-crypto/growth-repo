@@ -1,6 +1,6 @@
 # Risky Connectors
 
-Generated: 2026-07-28T18:50:20.590Z
+Generated: 2026-07-31T16:47:09.484Z
 
 Connectors whose risk is high enough to change the build decision, not just the build order.
 
@@ -8,13 +8,13 @@ Connectors whose risk is high enough to change the build decision, not just the 
 
 **Status:** OFFICIAL_API_AVAILABLE_NOT_CONFIGURED · **Automation:** approval-gated; uploads land private until the compliance audit passes
 
-API projects created after 2020-07-28 that have not passed a compliance audit can only upload videos as PRIVATE. Uploads succeed and the video is simply invisible, so this fails quietly rather than loudly — do not read a successful upload as a successful publish. Default quota is 10,000 units/day; the per-upload cost has historically been ~1600 units but current sources indicate it may now be ~100. Measure against the real project rather than trusting either number.
+Alternate direct backend (PUBLISH_BACKEND=direct) — Blotato is the default delivery path, and via Blotato's audited app public uploads work from day one. Direct-path reality: API projects created after 2020-07-28 that have not passed a compliance audit can only upload videos as PRIVATE. Uploads succeed and the video is simply invisible, so this fails quietly rather than loudly — do not read a successful upload as a successful publish. Default quota is 10,000 units/day; the per-upload cost has historically been ~1600 units but current sources indicate it may now be ~100. Measure against the real project rather than trusting either number.
 
 ### TikTok Content Posting API
 
 **Status:** OFFICIAL_API_AVAILABLE_NOT_CONFIGURED · **Automation:** not viable for auto-publish before the audit passes
 
-Unaudited API clients are restricted to SELF_ONLY viewership — every post is private and visible to nobody but the creator — and are capped at 5 users posting per 24 hours. Passing TikTok's audit is a hard prerequisite for any public posting, so building this adapter before the audit produces a working integration that publishes to an audience of zero. Build last.
+Alternate direct backend (PUBLISH_BACKEND=direct) — Blotato is the default delivery path, and via Blotato public posting works from day one. Direct-path reality: unaudited API clients are restricted to SELF_ONLY viewership — every post is private and visible to nobody but the creator — and are capped at 5 users posting per 24 hours.
 
 ### LinkedIn Community Management API (Pages)
 

@@ -928,3 +928,25 @@ The spec targets $0 ad spend and minimal tooling cost but never budgets model in
 If the system later moves to the Anthropic API, the modeled cost at the spec's daily targets is approximately **$14–23/month on Sonnet 5** with prompt caching and the Batch API, ~$8/month on Haiku 4.5, ~$37/month on Opus 5. The three levers, in order of impact: prompt caching on the stable brand/campaign/memory prefix (cache reads bill at ~0.1x), the Batch API (50% discount; content generation and risk classification are both scheduled and latency-tolerant), and model tiering (risk classification is a constrained rubric task well suited to a smaller model).
 
 The provider interface accepts model and batch hints per call site today, so this migration is configuration rather than a refactor.
+
+## A9. Social delivery through Blotato
+
+**Founder directive, 2026-07-31:** instead of inserting per-platform social credentials, posting is done and controlled through the Blotato connector. This supersedes the per-platform credential path as the default; it does not change any safety requirement.
+
+**Compliance.** Blotato qualifies under the spec's "user-authorized platform workflows": each social account is connected once by the founder through Blotato's dashboard OAuth against the platform's official API. No browser automation, no credential scraping, no undocumented endpoints. Blotato's own platform apps are audited, which is precisely what removes the direct path's reach limits.
+
+**What changes.**
+
+- The five social channels (LinkedIn, Facebook Page, Instagram Reels, YouTube Shorts, TikTok) publish through Blotato's API with a single `BLOTATO_API_KEY` plus per-platform account IDs (`npm run blotato:accounts` lists them once accounts are connected).
+- The platform-audit gauntlet disappears: via Blotato, YouTube uploads default **public** and TikTok posts default **PUBLIC_TO_EVERYONE** — real reach from day one, where the direct path could only honestly offer private/SELF_ONLY until each audit passed.
+- The `auth:*` bootstraps and direct adapters remain in the tree behind `PUBLISH_BACKEND=direct` as a fallback, but are no longer the standup path.
+- Media is ingested by URL, so `ASSET_BASE_URL` (the site builder's hosted `assets/` mirror) is now required for all three video platforms, not just Instagram.
+- TikTok posts carry `isAiGenerated: true` — honest disclosure, since the content is model-generated.
+
+**What does not change.** Every publish still runs behind the same gate: red never publishes, yellow requires the founder's approval record, kill switches fail closed and are keyed by platform (not backend), connectors still pause after repeated failures, and the draft-only channels (Reddit, Facebook Groups, X) have no adapter under either backend even though Blotato can post to some of them — the registry must never grow those keys.
+
+**Attribution nuance.** Blotato returns its own submission ID rather than the platform's post ID; it is stored as `blotato:<id>` in the attribution map, and the Blotato dashboard maps submissions to live posts. Acceptance criterion 9 is satisfied by that stored ID.
+
+**Cost.** Blotato is a paid subscription with no free tier — the first standing tooling cost in the stack. This is the spec's "paid upgrade justified" case: it replaces Meta App Review (2–6 weeks, rejection expected), the YouTube compliance audit, and the TikTok client audit with immediate public reach on every channel.
+
+**Risk note.** One key now reaches every connected account. The mode-600 `.env`, the per-platform kill switches, and the connector pause matter more under this concentration, not less. The same Blotato workspace also powers the Blotato MCP connector, so the founder can inspect and control the posting queue conversationally from Claude; the headless pipeline uses the same service's REST API directly.

@@ -1,6 +1,6 @@
 # Environment Audit
 
-Generated: 2026-07-28T18:50:20.590Z
+Generated: 2026-07-31T16:47:09.484Z
 Platform: linux
 
 > **This audit describes the machine it was generated on.**
@@ -16,7 +16,7 @@ Platform: linux
 | npm | yes | 10.9.7 | yes | Runs the command list |
 | pnpm | yes | 10.33.0 | no | Alternative package manager |
 | yarn | yes | 1.22.22 | no | Alternative package manager |
-| TypeScript | yes | Version 6.0.2 | no | Typecheck gate (npm run typecheck) |
+| TypeScript | yes | Version 5.9.3 | no | Typecheck gate (npm run typecheck) |
 | Python 3 | yes | Python 3.11.15 | no | Ad-hoc data work |
 | git | yes | git version 2.43.0 | yes | Version control and the audit trail |
 | GitHub CLI | NO | — | no | Convenience only |
@@ -49,18 +49,24 @@ No MCP servers configured. Use `claude mcp add` to add a server.
 
 | Key | Configured |
 |---|---|
+| `APPROVAL_EXPIRY_HOURS` | no |
 | `AUTOPUBLISH_ENABLED` | no |
 | `BLOG_AUTOPUBLISH_ENABLED` | no |
 | `EMAIL_AUTOSEND_ENABLED` | no |
 | `FACEBOOK_AUTOPUBLISH_ENABLED` | no |
 | `INSTAGRAM_AUTOPUBLISH_ENABLED` | no |
 | `LINKEDIN_AUTOPUBLISH_ENABLED` | no |
+| `LINKEDIN_VERSION` | no |
 | `LLM_MODEL_CLASSIFICATION` | no |
 | `LLM_MODEL_GENERATION` | no |
 | `LLM_PROVIDER` | no |
+| `META_GRAPH_VERSION` | no |
 | `POSTHOG_HOST` | no |
+| `PUBLISH_BACKEND` | no |
 | `TIKTOK_AUTOPUBLISH_ENABLED` | no |
+| `TIKTOK_PRIVACY_LEVEL` | no |
 | `YOUTUBE_AUTOPUBLISH_ENABLED` | no |
+| `YOUTUBE_PRIVACY_STATUS` | no |
 
 ## Repository
 

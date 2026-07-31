@@ -25,16 +25,9 @@ import { loadRules } from '../risk/evaluate.ts';
 import { listTemplates, computeTemplateHash } from '../templates/template.ts';
 import { checkPublishAllowed, DRAFT_ONLY_PLATFORMS, GLOBAL_SWITCH, platformSwitchName } from '../lib/killswitch.ts';
 import { connectorHealth } from '../publish/adapter.ts';
-import { BlogAdapter } from '../publish/blog.ts';
-import { EmailAdapter } from '../publish/email.ts';
-import { LinkedInAdapter } from '../publish/linkedin.ts';
-import { FacebookPageAdapter } from '../publish/facebook-page.ts';
-import { InstagramAdapter } from '../publish/instagram.ts';
-import { YouTubeAdapter } from '../publish/youtube.ts';
-import { TikTokAdapter } from '../publish/tiktok.ts';
+import { buildAdapters, publishBackend } from '../publish/registry.ts';
 import { getProvider } from '../llm/index.ts';
 import { PRODUCTS } from '../lib/types.ts';
-import type { PublisherAdapter } from '../publish/adapter.ts';
 
 loadEnvFile();
 
@@ -146,13 +139,16 @@ async function main(): Promise<void> {
 
   // --- Channels ------------------------------------------------------------
   section('Channels');
-  const adapters: PublisherAdapter[] = [
-    new BlogAdapter(), new EmailAdapter(), new LinkedInAdapter(),
-    new FacebookPageAdapter(), new InstagramAdapter(), new YouTubeAdapter(), new TikTokAdapter(),
-  ];
+  const backend = publishBackend();
+  const adapters = Object.values(buildAdapters());
 
   const globalOn = process.env[GLOBAL_SWITCH] === 'true';
   console.log(`  ${GLOBAL_SWITCH}=${globalOn ? 'true' : 'false — nothing publishes anywhere until this is "true"'}`);
+  console.log(
+    backend === 'blotato'
+      ? '  Social backend: blotato — accounts connect once in the Blotato dashboard; npm run blotato:accounts lists the IDs for .env'
+      : '  Social backend: direct — per-platform credentials via the auth:* bootstraps (PUBLISH_BACKEND unset/blotato is the default)',
+  );
   console.log('');
 
   for (const adapter of adapters) {

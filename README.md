@@ -4,7 +4,7 @@ Organic marketing system for **Rig Receipts** (trucking profitability) and **Til
 
 `CLAUDE.md` is the governing spec. Everything here implements it; where implementation and spec conflicted, the conflict is documented in the Implementation Addendum at the bottom of that file rather than resolved silently.
 
-**Phases 1–5 are built.** The full loop runs: research → generate → classify → approve → publish → analytics → learning → weekly review/plan. All seven publisher adapters are wired (Blog, Email, LinkedIn, Facebook Page, Instagram Reels, YouTube Shorts, TikTok); the social ones wait only on credentials, which the `auth:*` bootstrap scripts mint and write into `.env` themselves.
+**Phases 1–5 are built.** The full loop runs: research → generate → classify → approve → publish → analytics → learning → weekly review/plan. All seven channels are wired: Blog and Email first-party, and the five social channels (LinkedIn, Facebook Page, Instagram Reels, YouTube Shorts, TikTok) through **Blotato** — the founder connects each account once in the Blotato dashboard, and the whole social side then needs one API key plus per-platform account IDs (CLAUDE.md addendum A9). The per-platform direct adapters remain available behind `PUBLISH_BACKEND=direct`.
 
 ## Standing it up (credential checklist)
 
@@ -13,17 +13,16 @@ Everything is headless-ready. **`npm run doctor` is the companion for this whole
 1. `npm install && cp .env.example .env` — all kill switches start off.
 2. `npm run audit:connectors` on the operating laptop.
 3. Owned channels first: set `BLOG_DEPLOY_HOOK_URL` (optional), Resend keys + `FOUNDER_EMAIL`, and the product URLs (`RIG_RECEIPTS_URL`, `TILAWAH_LOCK_URL` — UTM attribution hangs off these).
-4. Social, in the audit's order — create each platform app, put its client ID/secret in `.env`, then run the bootstrap, which does the OAuth dance and writes the tokens itself:
-   - `npm run auth:linkedin` (localhost redirect on :8976)
-   - `npm run auth:meta -- <graph-explorer-user-token>` (checks the IG account is Business, not Creator)
-   - `npm run auth:youtube` (device flow — type a code on any device)
-   - `npm run auth:tiktok` (paste-code flow)
-5. Flip switches one at a time: `AUTOPUBLISH_ENABLED=true` plus the platform switch you're enabling.
-6. `npm run publish:approved -- --dry-run` at any point shows exactly what is missing per item — switch state, auth gap with the command to run, asset requirements.
-7. Schedule it: `npm run scheduler` (long-running, catches up missed jobs on wake), `scripts/crontab.example`, or on macOS `scripts/launchd.example.plist` (cron does not run with the lid closed; launchd + the scheduler's catch-up does the right thing).
-8. Blog hosting: `npm run site:build` renders `site/posts/` to `site/dist/` with `assets/` mirrored alongside — deploy `site/dist` to any static host and point `ASSET_BASE_URL` at `https://<host>/assets`, which satisfies Instagram's pull-from-URL requirement with no extra infrastructure.
+4. Social, through Blotato — no platform apps, no per-platform OAuth:
+   - Create a Blotato API key (dashboard → Settings → API) → `BLOTATO_API_KEY`
+   - Connect each social account once in the Blotato dashboard
+   - `npm run blotato:accounts` — lists the connected accounts with the exact `.env` line for each (`BLOTATO_*_ACCOUNT_ID`; Facebook also needs `BLOTATO_FACEBOOK_PAGE_ID`)
+5. Video hosting: `npm run site:build` renders `site/posts/` to `site/dist/` with `assets/` mirrored alongside — deploy `site/dist` to any static host and point `ASSET_BASE_URL` at `https://<host>/assets`. Blotato ingests media by URL, so all three video platforms need this.
+6. Flip switches one at a time: `AUTOPUBLISH_ENABLED=true` plus the platform switch you're enabling.
+7. `npm run publish:approved -- --dry-run` at any point shows exactly what is missing per item — switch state, credential gap with the command to run, asset requirements.
+8. Schedule it: `npm run scheduler` (long-running, catches up missed jobs on wake), `scripts/crontab.example`, or on macOS `scripts/launchd.example.plist` (cron does not run with the lid closed; launchd + the scheduler's catch-up does the right thing).
 
-**Reach reality on the audit-gated platforms:** YouTube uploads stay PRIVATE and TikTok posts stay SELF_ONLY until each platform's audit passes — the adapters default to those levels and say so in every publish log rather than pretending. Instagram needs `ASSET_BASE_URL` (it pulls video from a URL) and a Business account.
+**Reach reality:** via Blotato's audited platform apps, YouTube uploads default **public** and TikTok posts default **PUBLIC_TO_EVERYONE** from day one. The audit gauntlet only returns if you switch to `PUBLISH_BACKEND=direct` (per-platform apps + `auth:*` bootstraps), where unaudited projects force YouTube private and TikTok SELF_ONLY — see `/audit/CONNECTOR_AUDIT.md`. TikTok posts disclose `isAiGenerated`. The same Blotato workspace powers the Blotato MCP connector, so the posting queue can also be inspected conversationally from Claude.
 
 ## Setup
 
@@ -43,7 +42,7 @@ npm run content:generate    # daily set for both products → content/drafts/
 npm run risk:classify       # rules → dedup → scores → routed by level
 npm run approval:digest     # review the queue
 npm run approve <id>        # or reject / block / edit
-npm run publish:approved    # Blog + Email adapters live; social held (Phase 4)
+npm run publish:approved    # Blog + Email first-party; social via Blotato
 npm run analytics:collect   # manual drops + PostHog funnel → scorecard
 npm run learning:update     # baselines + hook bank (threshold-gated)
 npm run weekly:review       # Fridays — autonomy %, campaign classifications
@@ -103,7 +102,7 @@ Any drift falls back to normal approval. Red rules are never discounted by an ex
 
 ```bash
 npm run typecheck   # tsc --noEmit
-npm test            # 101 tests
+npm test            # 114 tests
 npm run doctor      # standup readiness report
 ```
 
@@ -124,7 +123,7 @@ Covers: every illegal state transition throws; edits re-enter classification; bl
 | `/src/risk` | Rules, dedup, scoring, classification, routing |
 | `/src/state` | The state machine |
 | `/src/content` | Research context + generation |
-| `/src/publish` | Adapter framework, Blog and Email adapters |
+| `/src/publish` | Adapter framework; Blotato (default social backend), Blog, Email, and the direct-platform fallback adapters |
 | `/src/analytics` | Scorecard, PostHog funnel, learning math |
 | `/src/llm` | Provider interface (`claude-cli` now, API backend stubbed) |
 

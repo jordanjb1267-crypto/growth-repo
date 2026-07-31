@@ -1,6 +1,6 @@
 # Recommended Connector Stack
 
-Generated: 2026-07-28T18:50:20.590Z
+Generated: 2026-07-31T16:47:09.484Z
 
 ## Now (Phases 1-3)
 
@@ -13,11 +13,12 @@ Generated: 2026-07-28T18:50:20.590Z
 
 ## Phase 4, in this order
 
-1. **LinkedIn Posts API (personal profile)** — The only social channel with no review gate.
-2. **Meta Graph API — Facebook Page** — Standard Access covers Pages the app owner administers, so full App Review is not required for our own Pages — the founder must hold a role on the app.
-3. **Meta Graph API — Instagram Reels** — Requires an Instagram BUSINESS account linked to a Facebook Page.
-4. **YouTube Data API v3** — API projects created after 2020-07-28 that have not passed a compliance audit can only upload videos as PRIVATE.
-5. **TikTok Content Posting API** — Unaudited API clients are restricted to SELF_ONLY viewership — every post is private and visible to nobody but the creator — and are capped at 5 users posting per 24 hours.
+0. **Blotato (social publishing backend)** — Accounts connect once in the Blotato dashboard (user-authorized OAuth against each platform's official API); posting then needs only BLOTATO_API_KEY plus per-platform account IDs (npm run blotato:accounts).
+1. **LinkedIn Posts API (personal profile)** — Alternate direct backend (PUBLISH_BACKEND=direct) — Blotato is the default delivery path.
+2. **Meta Graph API — Facebook Page** — Alternate direct backend (PUBLISH_BACKEND=direct) — Blotato is the default delivery path.
+3. **Meta Graph API — Instagram Reels** — Alternate direct backend (PUBLISH_BACKEND=direct) — Blotato is the default delivery path.
+4. **YouTube Data API v3** — Alternate direct backend (PUBLISH_BACKEND=direct) — Blotato is the default delivery path, and via Blotato's audited app public uploads work from day one.
+5. **TikTok Content Posting API** — Alternate direct backend (PUBLISH_BACKEND=direct) — Blotato is the default delivery path, and via Blotato public posting works from day one.
 
 ## Deliberately not adopted
 

@@ -25,6 +25,7 @@
     "doctor": "node src/scripts/doctor.ts",
     "retract": "node src/scripts/retract.ts",
     "site:build": "node src/scripts/build-site.ts",
+    "blotato:accounts": "node src/scripts/blotato-accounts.ts",
     "auth:linkedin": "node src/scripts/auth-linkedin.ts",
     "auth:meta": "node src/scripts/auth-meta.ts",
     "auth:youtube": "node src/scripts/auth-youtube.ts",

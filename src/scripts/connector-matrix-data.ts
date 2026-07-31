@@ -37,6 +37,29 @@ export interface ConnectorEntry {
 
 export const CONNECTORS: ConnectorEntry[] = [
   {
+    name: 'Blotato (social publishing backend)',
+    category: 'publisher',
+    status: 'OFFICIAL_API_AVAILABLE_NOT_CONFIGURED',
+    purpose: 'Default delivery backend for all five social channels (founder directive, CLAUDE.md A9)',
+    auth_required: true,
+    env_vars_needed: [
+      'BLOTATO_API_KEY',
+      'BLOTATO_LINKEDIN_ACCOUNT_ID',
+      'BLOTATO_FACEBOOK_ACCOUNT_ID',
+      'BLOTATO_FACEBOOK_PAGE_ID',
+      'BLOTATO_INSTAGRAM_ACCOUNT_ID',
+      'BLOTATO_YOUTUBE_ACCOUNT_ID',
+      'BLOTATO_TIKTOK_ACCOUNT_ID',
+    ],
+    monthly_cost: 'paid subscription (no free tier) — the justified paid upgrade the spec allows',
+    official_api_only: true,
+    risk_level: 'medium',
+    automation_level: 'approval-gated, then auto-publish for green content — same gate as every backend',
+    notes:
+      'Accounts connect once in the Blotato dashboard (user-authorized OAuth against each platform\'s official API); posting then needs only BLOTATO_API_KEY plus per-platform account IDs (npm run blotato:accounts). Replaces the per-platform audit gauntlet: via Blotato\'s audited apps, YouTube uploads can be public and TikTok posts PUBLIC_TO_EVERYONE from day one. Media is ingested by URL, so ASSET_BASE_URL is required for video. Post creation returns a Blotato submission ID (stored as blotato:<id>); the dashboard maps it to the live post. Single-credential concentration risk: one leaked key reaches every connected account — the kill switches and the mode-600 .env matter more, not less. The same workspace powers the Blotato MCP connector for conversational control from Claude. Draft-only channels are never wired through it.',
+    phase4_rank: 0,
+  },
+  {
     name: 'LinkedIn Posts API (personal profile)',
     category: 'publisher',
     status: 'OFFICIAL_API_AVAILABLE_NOT_CONFIGURED',
@@ -48,7 +71,7 @@ export const CONNECTORS: ConnectorEntry[] = [
     risk_level: 'low',
     automation_level: 'approval-gated, then auto-publish for green content',
     notes:
-      'The only social channel with no review gate. Uses the self-serve "Share on LinkedIn" product and the w_member_social scope. Build this first — it is the fastest path to a real auto-publish loop.',
+      'Alternate direct backend (PUBLISH_BACKEND=direct) — Blotato is the default delivery path. The only social channel with no review gate. Uses the self-serve "Share on LinkedIn" product and the w_member_social scope.',
     phase4_rank: 1,
   },
   {
@@ -63,7 +86,7 @@ export const CONNECTORS: ConnectorEntry[] = [
     risk_level: 'medium',
     automation_level: 'approval-gated, then auto-publish for green content',
     notes:
-      'Standard Access covers Pages the app owner administers, so full App Review is not required for our own Pages — the founder must hold a role on the app. Advanced Access plus Business Verification is only needed to touch third-party Pages, and that path runs 2-6 weeks with a rejection expected.',
+      'Alternate direct backend (PUBLISH_BACKEND=direct) — Blotato is the default delivery path. Standard Access covers Pages the app owner administers, so full App Review is not required for our own Pages — the founder must hold a role on the app. Advanced Access plus Business Verification is only needed to touch third-party Pages, and that path runs 2-6 weeks with a rejection expected.',
     phase4_rank: 2,
   },
   {
@@ -78,7 +101,7 @@ export const CONNECTORS: ConnectorEntry[] = [
     risk_level: 'medium',
     automation_level: 'approval-gated, then auto-publish for green content',
     notes:
-      'Requires an Instagram BUSINESS account linked to a Facebook Page. Creator accounts cannot publish via the API — check this before anything else, it is the most common blocker. Publishing is a three-step container flow (create with media_type=REELS and a publicly reachable video_url, poll until FINISHED, then publish). Reels-tab eligibility wants 9:16, 5-90 seconds, H.264 or HEVC.',
+      'Alternate direct backend (PUBLISH_BACKEND=direct) — Blotato is the default delivery path. Requires an Instagram BUSINESS account linked to a Facebook Page. Creator accounts cannot publish via the API — check this before anything else, it is the most common blocker. Publishing is a three-step container flow (create with media_type=REELS and a publicly reachable video_url, poll until FINISHED, then publish). Reels-tab eligibility wants 9:16, 5-90 seconds, H.264 or HEVC.',
     phase4_rank: 3,
   },
   {
@@ -93,7 +116,7 @@ export const CONNECTORS: ConnectorEntry[] = [
     risk_level: 'high',
     automation_level: 'approval-gated; uploads land private until the compliance audit passes',
     notes:
-      'API projects created after 2020-07-28 that have not passed a compliance audit can only upload videos as PRIVATE. Uploads succeed and the video is simply invisible, so this fails quietly rather than loudly — do not read a successful upload as a successful publish. Default quota is 10,000 units/day; the per-upload cost has historically been ~1600 units but current sources indicate it may now be ~100. Measure against the real project rather than trusting either number.',
+      'Alternate direct backend (PUBLISH_BACKEND=direct) — Blotato is the default delivery path, and via Blotato\'s audited app public uploads work from day one. Direct-path reality: API projects created after 2020-07-28 that have not passed a compliance audit can only upload videos as PRIVATE. Uploads succeed and the video is simply invisible, so this fails quietly rather than loudly — do not read a successful upload as a successful publish. Default quota is 10,000 units/day; the per-upload cost has historically been ~1600 units but current sources indicate it may now be ~100. Measure against the real project rather than trusting either number.',
     phase4_rank: 4,
   },
   {
@@ -108,7 +131,7 @@ export const CONNECTORS: ConnectorEntry[] = [
     risk_level: 'high',
     automation_level: 'not viable for auto-publish before the audit passes',
     notes:
-      'Unaudited API clients are restricted to SELF_ONLY viewership — every post is private and visible to nobody but the creator — and are capped at 5 users posting per 24 hours. Passing TikTok\'s audit is a hard prerequisite for any public posting, so building this adapter before the audit produces a working integration that publishes to an audience of zero. Build last.',
+      'Alternate direct backend (PUBLISH_BACKEND=direct) — Blotato is the default delivery path, and via Blotato public posting works from day one. Direct-path reality: unaudited API clients are restricted to SELF_ONLY viewership — every post is private and visible to nobody but the creator — and are capped at 5 users posting per 24 hours.',
     phase4_rank: 5,
   },
   {

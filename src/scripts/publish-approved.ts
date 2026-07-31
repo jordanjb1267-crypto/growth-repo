@@ -5,46 +5,32 @@
  *   npm run publish:approved              # publish (kill switches still apply)
  *   npm run publish:approved -- --dry-run # report the gate without publishing
  *
- * All adapters are wired: owned channels (Blog, Email) and the Phase 4 social
- * set (LinkedIn, Facebook Page, Instagram Reels, YouTube Shorts, TikTok).
- * Everything is gated on credentials in .env and on the kill switches, which
- * all fail closed — a wired adapter with no credentials HOLDs with the exact
- * auth command to run, it does not error the batch.
+ * All channels are wired: owned (Blog, Email) first-party, and the social set
+ * (LinkedIn, Facebook Page, Instagram Reels, YouTube Shorts, TikTok) through
+ * the backend the registry selects — Blotato by default, PUBLISH_BACKEND=direct
+ * for the per-platform adapters. Everything is gated on credentials in .env and
+ * on the kill switches, which all fail closed — a wired adapter with no
+ * credentials HOLDs with the exact next command, it does not error the batch.
  */
 
 import { loadEnvFile } from '../lib/env-file.ts';
 import { listItemsInState } from '../lib/store.ts';
 import { checkPublishAllowed } from '../lib/killswitch.ts';
 import { publishItem } from '../publish/adapter.ts';
-import { BlogAdapter } from '../publish/blog.ts';
-import { EmailAdapter } from '../publish/email.ts';
-import { LinkedInAdapter } from '../publish/linkedin.ts';
-import { FacebookPageAdapter } from '../publish/facebook-page.ts';
-import { InstagramAdapter } from '../publish/instagram.ts';
-import { YouTubeAdapter } from '../publish/youtube.ts';
-import { TikTokAdapter } from '../publish/tiktok.ts';
-import type { Platform } from '../lib/types.ts';
-import type { PublisherAdapter } from '../publish/adapter.ts';
+import { buildAdapters, publishBackend } from '../publish/registry.ts';
 
 loadEnvFile();
 
 const dryRun = process.argv.includes('--dry-run');
 
-const ADAPTERS: Partial<Record<Platform, PublisherAdapter>> = {
-  Blog: new BlogAdapter(),
-  Email: new EmailAdapter(),
-  LinkedIn: new LinkedInAdapter(),
-  'Facebook Page': new FacebookPageAdapter(),
-  'Instagram Reels': new InstagramAdapter(),
-  'YouTube Shorts': new YouTubeAdapter(),
-  TikTok: new TikTokAdapter(),
-};
+const ADAPTERS = buildAdapters();
 
 async function main(): Promise<void> {
   const ready = listItemsInState('auto_publish_ready');
 
   console.log('');
   console.log(dryRun ? 'PRE-PUBLISH GATE (dry run)' : 'PUBLISH');
+  console.log(`social backend: ${publishBackend()}`);
   console.log('─'.repeat(72));
 
   if (ready.length === 0) {

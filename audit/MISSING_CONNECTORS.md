@@ -1,6 +1,6 @@
 # Missing Connectors
 
-Generated: 2026-07-28T18:50:20.590Z
+Generated: 2026-07-31T16:47:09.484Z
 
 > **This audit describes the machine it was generated on.**
 > Regenerate it on the founder's laptop before trusting it. An audit produced
@@ -13,6 +13,7 @@ Official API available, credentials not fully configured.
 
 | Connector | Status | Missing env vars |
 |---|---|---|
+| Blotato (social publishing backend) | OFFICIAL_API_AVAILABLE_NOT_CONFIGURED | `BLOTATO_API_KEY`, `BLOTATO_LINKEDIN_ACCOUNT_ID`, `BLOTATO_FACEBOOK_ACCOUNT_ID`, `BLOTATO_FACEBOOK_PAGE_ID`, `BLOTATO_INSTAGRAM_ACCOUNT_ID`, `BLOTATO_YOUTUBE_ACCOUNT_ID`, `BLOTATO_TIKTOK_ACCOUNT_ID` |
 | LinkedIn Posts API (personal profile) | OFFICIAL_API_AVAILABLE_NOT_CONFIGURED | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `LINKEDIN_ACCESS_TOKEN`, `LINKEDIN_MEMBER_URN` |
 | Meta Graph API — Facebook Page | OFFICIAL_API_AVAILABLE_NOT_CONFIGURED | `META_APP_ID`, `META_APP_SECRET`, `META_PAGE_ID`, `META_PAGE_ACCESS_TOKEN` |
 | Meta Graph API — Instagram Reels | OFFICIAL_API_AVAILABLE_NOT_CONFIGURED | `META_APP_ID`, `META_APP_SECRET`, `INSTAGRAM_BUSINESS_ACCOUNT_ID`, `META_PAGE_ACCESS_TOKEN` |
