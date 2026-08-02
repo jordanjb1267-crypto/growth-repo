@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import { expireItem, findExpired } from '../src/approval/queue.ts';
 import { canTransition, STATE_DIRECTORIES } from '../src/state/machine.ts';
-import { foldAudienceBanks } from '../src/analytics/banks.ts';
+import { defaultRawDir, foldAudienceBanks } from '../src/analytics/banks.ts';
 import { buildSite, parsePost, renderMarkdown } from '../src/site/build.ts';
 import { writeItem, readItem } from '../src/lib/store.ts';
 import { REPO_ROOT, paths } from '../src/lib/paths.ts';
@@ -65,61 +66,101 @@ describe('late retraction edges', () => {
 });
 
 describe('audience bank folding', () => {
-  it('promotes on the second independent day, not the first', () => {
-    const rawDir = join(paths.analytics, 'raw');
+  /**
+   * Fully isolated: research is read from a temp directory and the banks are
+   * written to a temp directory. This previously folded against the real
+   * analytics/raw/ feed and mutated the real memory banks, so a genuine
+   * research file mentioning a seeded phrase changed the appearance count and
+   * failed the test — which is exactly what happened on 2026-08-02.
+   */
+  function isolatedDirs(): { rawDir: string; memoryDir: string } {
+    const base = mkdtempSync(join(tmpdir(), 'growth-banks-'));
+    tempDirs.push(base);
+    const rawDir = join(base, 'raw');
+    const memoryDir = join(base, 'memory');
     mkdirSync(rawDir, { recursive: true });
+    mkdirSync(memoryDir, { recursive: true });
+    writeFileSync(join(memoryDir, 'audience-language-bank.json'), JSON.stringify({ entries: [] }), 'utf8');
+    writeFileSync(join(memoryDir, 'objection-bank.json'), JSON.stringify({ objections: [] }), 'utf8');
+    return { rawDir, memoryDir };
+  }
 
-    const mkResearch = (date: string, phrases: string[], objections: string[]) => {
-      const file = join(rawDir, `${date}-research.json`);
-      testFiles.push(file);
-      writeFileSync(
-        file,
-        JSON.stringify({
-          $schema_version: 1,
-          generated_at: `${date}T07:00:00Z`,
-          topics: [
-            {
-              product: 'Rig Receipts',
-              topic: 'test',
-              audience_language: phrases,
-              objections,
-              content_angle: 'test',
-              sources: 'model-prior',
-            },
-          ],
-        }),
-      );
-    };
+  function mkResearch(rawDir: string, date: string, phrases: string[], objections: string[]): void {
+    writeFileSync(
+      join(rawDir, `${date}-research.json`),
+      JSON.stringify({
+        $schema_version: 1,
+        generated_at: `${date}T07:00:00Z`,
+        topics: [
+          {
+            product: 'Rig Receipts',
+            topic: 'test',
+            audience_language: phrases,
+            objections,
+            content_angle: 'test',
+            sources: 'model-prior',
+          },
+        ],
+      }),
+      'utf8',
+    );
+  }
 
-    mkResearch('2020-01-01', ['deadhead ate the load', 'TEST-once-only'], ['TEST-too busy to track']);
-    mkResearch('2020-01-02', ['Deadhead ate the load'], ['test-too busy to track']);
+  it('promotes on the second independent day, not the first', () => {
+    const { rawDir, memoryDir } = isolatedDirs();
+    mkResearch(rawDir, '2020-01-01', ['deadhead ate the load', 'TEST-once-only'], ['TEST-too busy to track']);
+    mkResearch(rawDir, '2020-01-02', ['Deadhead ate the load'], ['test-too busy to track']);
 
-    const result = foldAudienceBanks();
+    const result = foldAudienceBanks({ rawDir, memoryDir });
     assert.ok(result.candidates_waiting >= 1, 'the single-appearance phrase must still be waiting');
 
-    const languageBank = JSON.parse(
-      readFileSync(join(paths.memory, 'audience-language-bank.json'), 'utf8'),
-    ) as { entries: { text: string; appearances: number }[] };
+    const languageBank = JSON.parse(readFileSync(join(memoryDir, 'audience-language-bank.json'), 'utf8')) as {
+      entries: { text: string; appearances: number }[];
+    };
     const promoted = languageBank.entries.find((e) => e.text.toLowerCase() === 'deadhead ate the load');
     assert.ok(promoted, 'two-day phrase promoted (case-insensitively deduped)');
     assert.equal(promoted.appearances, 2);
     assert.ok(!languageBank.entries.some((e) => e.text === 'TEST-once-only'), 'one-day phrase not promoted');
 
-    const objectionBank = JSON.parse(readFileSync(join(paths.memory, 'objection-bank.json'), 'utf8')) as {
+    const objectionBank = JSON.parse(readFileSync(join(memoryDir, 'objection-bank.json'), 'utf8')) as {
       objections: { text: string }[];
     };
     assert.ok(objectionBank.objections.some((o) => o.text.toLowerCase() === 'test-too busy to track'));
+  });
 
-    // Restore the seeded banks so the repo stays clean.
-    testFiles.push(); // no-op; bank restoration below
-    const restore = (file: string, key: string) => {
-      const full = join(paths.memory, file);
-      const bank = JSON.parse(readFileSync(full, 'utf8')) as Record<string, unknown>;
-      bank[key] = (bank[key] as { text: string }[]).filter((e) => !/deadhead ate the load|test-/i.test(e.text));
-      writeFileSync(full, `${JSON.stringify(bank, null, 2)}\n`);
+  it('is unaffected by real research files, and never writes the real banks', () => {
+    // Whatever the founder's genuine feed contains — including the very phrase
+    // this test seeds — must be invisible to an isolated fold.
+    const realRaw = defaultRawDir();
+    const realResearch = existsSync(realRaw)
+      ? readdirSync(realRaw).filter((f) => /^\d{4}-\d{2}-\d{2}-research\.json$/.test(f))
+      : [];
+    const realMentions = realResearch.filter((f) =>
+      /deadhead ate the load/i.test(readFileSync(join(realRaw, f), 'utf8')),
+    );
+
+    const bankFiles = ['audience-language-bank.json', 'objection-bank.json'];
+    const realBanksBefore = bankFiles.map((f) => readFileSync(join(paths.memory, f), 'utf8'));
+
+    const { rawDir, memoryDir } = isolatedDirs();
+    mkResearch(rawDir, '2020-01-01', ['deadhead ate the load'], []);
+    mkResearch(rawDir, '2020-01-02', ['deadhead ate the load'], []);
+    foldAudienceBanks({ rawDir, memoryDir });
+
+    const languageBank = JSON.parse(readFileSync(join(memoryDir, 'audience-language-bank.json'), 'utf8')) as {
+      entries: { text: string; appearances: number }[];
     };
-    restore('audience-language-bank.json', 'entries');
-    restore('objection-bank.json', 'objections');
+    const promoted = languageBank.entries.find((e) => e.text.toLowerCase() === 'deadhead ate the load');
+    assert.ok(promoted);
+    assert.equal(
+      promoted.appearances,
+      2,
+      `must count only the 2 fixture days; the real feed holds ${realResearch.length} research file(s), ` +
+        `${realMentions.length} of which mention this phrase and must not leak in`,
+    );
+
+    const realBanksAfter = bankFiles.map((f) => readFileSync(join(paths.memory, f), 'utf8'));
+    assert.deepEqual(realBanksAfter, realBanksBefore, 'an isolated fold must never write the real memory banks');
   });
 });
 

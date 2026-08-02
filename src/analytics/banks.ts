@@ -39,8 +39,24 @@ interface Extraction {
 
 const RESEARCH_FILE_PATTERN = /^(\d{4}-\d{2}-\d{2})-research\.json$/;
 
-function collectCandidates(): Extraction {
-  const rawDir = join(paths.analytics, 'raw');
+/**
+ * Directory overrides. Both default to the production locations, so callers
+ * that pass nothing behave exactly as before — this exists so a test can fold
+ * against a fixture directory instead of reading the founder's real research
+ * feed and writing the real memory banks.
+ */
+export interface FoldOptions {
+  /** Where `<date>-research.json` files are read from. Default: analytics/raw/. */
+  rawDir?: string;
+  /** Where the bank files are read and written. Default: memory/. */
+  memoryDir?: string;
+}
+
+export function defaultRawDir(): string {
+  return join(paths.analytics, 'raw');
+}
+
+function collectCandidates(rawDir: string): Extraction {
   const extraction: Extraction = { language: new Map(), objections: new Map() };
   if (!existsSync(rawDir)) return extraction;
 
@@ -87,8 +103,8 @@ interface FoldResult {
 }
 
 /** Upsert promoted candidates into a bank file's entry array. */
-function upsertBank(file: string, arrayKey: string, promoted: Candidate[]): number {
-  const full = join(paths.memory, file);
+function upsertBank(memoryDir: string, file: string, arrayKey: string, promoted: Candidate[]): number {
+  const full = join(memoryDir, file);
   const bank = JSON.parse(readFileSync(full, 'utf8')) as Record<string, unknown> & Record<string, BankEntry[] | unknown>;
   const entries = (bank[arrayKey] as BankEntry[] | undefined) ?? [];
   const byKey = new Map(entries.map((e) => [`${e.product}::${normalize(e.text)}`, e]));
@@ -124,8 +140,11 @@ function upsertBank(file: string, arrayKey: string, promoted: Candidate[]): numb
   return changed;
 }
 
-export function foldAudienceBanks(): FoldResult {
-  const { language, objections } = collectCandidates();
+export function foldAudienceBanks(options: FoldOptions = {}): FoldResult {
+  const rawDir = options.rawDir ?? defaultRawDir();
+  const memoryDir = options.memoryDir ?? paths.memory;
+
+  const { language, objections } = collectCandidates(rawDir);
 
   const promotedLanguage = [...language.values()].filter((c) => c.dates.size >= 2);
   const promotedObjections = [...objections.values()].filter((c) => c.dates.size >= 2);
@@ -133,8 +152,8 @@ export function foldAudienceBanks(): FoldResult {
     [...language.values()].filter((c) => c.dates.size < 2).length +
     [...objections.values()].filter((c) => c.dates.size < 2).length;
 
-  const changedLanguage = upsertBank('audience-language-bank.json', 'entries', promotedLanguage);
-  const changedObjections = upsertBank('objection-bank.json', 'objections', promotedObjections);
+  const changedLanguage = upsertBank(memoryDir, 'audience-language-bank.json', 'entries', promotedLanguage);
+  const changedObjections = upsertBank(memoryDir, 'objection-bank.json', 'objections', promotedObjections);
 
   return {
     promoted_language: changedLanguage,

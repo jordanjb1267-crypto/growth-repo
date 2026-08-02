@@ -9,7 +9,7 @@
 
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { LlmError, type CompletionRequest, type CompletionResponse, type LlmProvider } from './provider.ts';
+import { extractJson, LlmError, type CompletionRequest, type CompletionResponse, type LlmProvider } from './provider.ts';
 
 const execFileAsync = promisify(execFile);
 
@@ -50,55 +50,80 @@ export class ClaudeCliProvider implements LlmProvider {
     }
   }
 
-  async complete(request: CompletionRequest): Promise<CompletionResponse> {
-    const model = request.model ?? this.#defaultModel;
-
+  #render(request: CompletionRequest, attempt: number): string {
     // System prompt first, varying content last. Irrelevant to the CLI backend
     // but keeps the rendered shape identical to what the API backend will send,
     // so prompt-cache behaviour does not change on switchover.
-    const rendered = [
+    //
+    // The retry instruction is appended AFTER the prompt so the stable prefix
+    // stays byte-identical across attempts — a retry must not cost a cache miss
+    // on the parts that did not change.
+    return [
       request.system,
       '',
-      request.json
-        ? 'Respond with a single JSON object and nothing else. No prose, no code fences.'
-        : '',
+      request.json ? 'Respond with a single JSON object and nothing else. No prose, no code fences.' : '',
       '',
       request.prompt,
+      attempt > 1 && request.json
+        ? '\nYour previous response could not be parsed as JSON. Return exactly one valid JSON object: no prose before or after it, no code fences, no trailing commentary, and no unterminated strings.'
+        : '',
     ]
       .filter(Boolean)
       .join('\n');
+  }
 
-    let lastError: unknown;
+  async complete(request: CompletionRequest): Promise<CompletionResponse> {
+    const model = request.model ?? this.#defaultModel;
+    let parseFailures = 0;
+    let lastLength = 0;
 
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+      let text: string;
+
+      // --- Transport ---------------------------------------------------------
       try {
         const { stdout } = await execFileAsync(
           this.#binary,
-          ['-p', rendered, '--model', model],
+          ['-p', this.#render(request, attempt), '--model', model],
           { timeout: DEFAULT_TIMEOUT_MS, maxBuffer: 32 * 1024 * 1024 },
         );
-
-        return {
-          text: stdout.trim(),
-          // Subscription usage is not itemized per call; reporting a fabricated
-          // number here would corrupt any future cost tracking.
-          usage: null,
-          model,
-        };
+        text = stdout.trim();
       } catch (error) {
-        lastError = error;
         const message = error instanceof Error ? error.message : String(error);
-
         if (!isRetryable(message) || attempt === MAX_ATTEMPTS) {
           throw new LlmError(this.name, message, isRetryable(message));
         }
         await sleep(backoffMs(attempt));
+        continue;
       }
+
+      // --- JSON contract -----------------------------------------------------
+      // `json: true` is a contract, not a hint. A response that does not parse
+      // is re-prompted, never returned: callers downstream (generation, the
+      // risk classifier) treat unparseable output as a hard failure, and a
+      // single bad roll should not cost a product its whole daily set.
+      // Exhausting the attempts throws — this never degrades into accepting
+      // malformed output.
+      if (request.json && extractJson(text) === null) {
+        parseFailures += 1;
+        lastLength = text.length;
+        if (attempt === MAX_ATTEMPTS) break;
+        await sleep(backoffMs(attempt));
+        continue;
+      }
+
+      return {
+        text,
+        // Subscription usage is not itemized per call; reporting a fabricated
+        // number here would corrupt any future cost tracking.
+        usage: null,
+        model,
+      };
     }
 
     throw new LlmError(
       this.name,
-      lastError instanceof Error ? lastError.message : String(lastError),
+      `model returned unparseable JSON on all ${MAX_ATTEMPTS} attempt(s) (${parseFailures} parse failure(s); last response ${lastLength} chars)`,
       false,
     );
   }

@@ -21,9 +21,13 @@ export interface CompletionRequest {
   prompt: string;
   /** Provider-agnostic model hint; the backend maps it to a concrete ID. */
   model?: string;
+  /** Output ceiling. Honoured by the API backend; the CLI backend has no flag
+   *  for it and IGNORES it — do not rely on it to bound a CLI response. */
   maxTokens?: number;
-  /** Request JSON output. The CLI backend enforces this by re-prompting on a
-   *  parse failure rather than trusting the first response. */
+  /** Request JSON output. This is a contract, not a hint: the CLI backend
+   *  validates the response parses and re-prompts if it does not, and throws
+   *  once attempts are exhausted. It never returns unparseable text when this
+   *  is set. */
   json?: boolean;
   /** Latency-tolerant work that could be batched by an API backend. Ignored by
    *  the CLI backend. */
