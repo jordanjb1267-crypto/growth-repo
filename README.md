@@ -22,6 +22,24 @@ Everything is headless-ready. **`npm run doctor` is the companion for this whole
 7. `npm run publish:approved -- --dry-run` at any point shows exactly what is missing per item — switch state, credential gap with the command to run, asset requirements.
 8. Schedule it: `npm run scheduler` (long-running, catches up missed jobs on wake), `scripts/crontab.example`, or on macOS `scripts/launchd.example.plist` (cron does not run with the lid closed; launchd + the scheduler's catch-up does the right thing).
 
+   Rehearse before committing to the loop:
+
+   ```bash
+   npm run scheduler -- --dry-run                       # evaluate only: no subprocess, no writes, no lock
+   npm run scheduler -- --once --only publish:approved  # one tick, one named job
+   npm run scheduler -- --once --all-due                # one tick, every currently due job
+   ```
+
+   `--dry-run` prints every job as due / not due / wrong day / already completed / excluded, with the reason. It invokes nothing, so it reports only what *would* be dispatched — never how a job's own command would behave.
+
+   **A bare `--once` is refused.** On a machine that has been off all morning a single tick can fire every catch-up job at once — generation, classification, publish — so `--once` requires you to say which you meant: `--only <job>` or `--all-due`. The two are mutually exclusive. The continuous loop is unaffected, since running every due job is its purpose. `--once` exits non-zero if any job in the tick failed; unknown `--only` names fail closed and list the valid ones.
+
+   **One scheduler per checkout.** A live tick (loop or `--once`) holds an atomic directory lock at `logs/scheduler.lock`, recording pid and start time. A second scheduler exits non-zero immediately rather than interleaving ticks and racing on the state file. A lock whose owner process is dead is recovered automatically; a lock held by a live process is never stolen. `--dry-run` takes no lock, so it stays usable against a running scheduler.
+
+   The scheduler emails the approval digest only when `SCHEDULER_DIGEST_EMAIL=true`. That is a founder-notification control, separate from the marketing kill switches: without it, inserting Resend credentials would start scheduled mail with every publishing switch still off. The manual `npm run approval:digest -- --email` is unaffected.
+
+   **Known limitations.** `--only` takes exactly one job per invocation, so rehearsing a sequence such as generate-then-classify means two commands, and the second is not conditioned on the first succeeding. A job that fails is still marked complete for the day by the existing anti-tight-loop policy and is **not retried** — one broken morning costs that day's run. Retry and backoff are a separate design; the scheduler is not self-healing.
+
 **Reach reality:** via Blotato's audited platform apps, YouTube uploads default **public** and TikTok posts default **PUBLIC_TO_EVERYONE** from day one. The audit gauntlet only returns if you switch to `PUBLISH_BACKEND=direct` (per-platform apps + `auth:*` bootstraps), where unaudited projects force YouTube private and TikTok SELF_ONLY — see `/audit/CONNECTOR_AUDIT.md`. TikTok posts disclose `isAiGenerated`. The same Blotato workspace powers the Blotato MCP connector, so the posting queue can also be inspected conversationally from Claude.
 
 ## Setup

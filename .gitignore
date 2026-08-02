@@ -27,4 +27,9 @@ assets/**/*.jpg
 assets/**/*.jpeg
 logs/*.json
 logs/*.log
+
+# Scheduler single-instance lock. A directory, so logs/*.json above does not
+# cover the owner file inside it.
+logs/scheduler.lock/
+logs/scheduler.lock.stale-*/
 site/dist/
