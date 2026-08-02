@@ -1,6 +1,6 @@
 {
   "$schema_version": 1,
-  "generated_at": "2026-07-31T16:47:09.484Z",
+  "generated_at": "2026-08-02T18:27:55.448Z",
   "note": "Access-gate assessments were verified against platform documentation, not inferred from the spec. See CONNECTOR_AUDIT.md for the build-order consequence.",
   "connectors": [
     {
@@ -198,7 +198,7 @@
     {
       "name": "PostHog",
       "category": "analytics",
-      "status": "OFFICIAL_API_AVAILABLE_NOT_CONFIGURED",
+      "status": "AVAILABLE_MISSING_AUTH",
       "purpose": "Product conversion analytics — installs, activation, trial, paid",
       "auth_required": true,
       "env_vars_needed": [

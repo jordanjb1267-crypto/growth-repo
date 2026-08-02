@@ -1,6 +1,6 @@
 # Missing Connectors
 
-Generated: 2026-07-31T16:47:09.484Z
+Generated: 2026-08-02T18:27:55.448Z
 
 > **This audit describes the machine it was generated on.**
 > Regenerate it on the founder's laptop before trusting it. An audit produced
@@ -21,14 +21,14 @@ Official API available, credentials not fully configured.
 | TikTok Content Posting API | OFFICIAL_API_AVAILABLE_NOT_CONFIGURED | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`, `TIKTOK_REFRESH_TOKEN` |
 | Blog / landing page (static deploy) | OFFICIAL_API_AVAILABLE_NOT_CONFIGURED | `BLOG_DEPLOY_HOOK_URL` |
 | Email / waitlist provider | OFFICIAL_API_AVAILABLE_NOT_CONFIGURED | `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS` |
-| PostHog | OFFICIAL_API_AVAILABLE_NOT_CONFIGURED | `POSTHOG_PROJECT_API_KEY`, `POSTHOG_HOST` |
+| PostHog | AVAILABLE_MISSING_AUTH | `POSTHOG_PROJECT_API_KEY` |
 
 ## Missing tooling
 
 | Tool | Required | Purpose |
 |---|---|---|
-| GitHub CLI | no | Convenience only |
-| SQLite | no | Not used — storage is local JSON by design |
+| pnpm | no | Alternative package manager |
+| yarn | no | Alternative package manager |
 | ffmpeg | no | Video validation and processing (Phase 4) |
 | ImageMagick | no | Thumbnail processing (Phase 4) |
 | ImageMagick (legacy) | no | Thumbnail processing fallback |

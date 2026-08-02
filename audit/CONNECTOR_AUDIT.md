@@ -1,6 +1,6 @@
 # Connector Audit
 
-Generated: 2026-07-31T16:47:09.484Z
+Generated: 2026-08-02T18:27:55.448Z
 
 > **This audit describes the machine it was generated on.**
 > Regenerate it on the founder's laptop before trusting it. An audit produced
@@ -41,7 +41,7 @@ publicly without passing a platform audit.
 | Reddit | publisher | DRAFT_ONLY_RECOMMENDED | high | draft-only — no automated posting, ever |
 | Facebook Groups | publisher | DRAFT_ONLY_RECOMMENDED | high | draft-only — no automated posting, ever |
 | X (Twitter) API | publisher | NOT_RECOMMENDED | medium | none — optional and deferred |
-| PostHog | analytics | OFFICIAL_API_AVAILABLE_NOT_CONFIGURED | low | read-only |
+| PostHog | analytics | AVAILABLE_MISSING_AUTH | low | read-only |
 
 ## Per-connector detail
 
@@ -179,7 +179,7 @@ The spec marks X optional. The free tier's write cap makes it marginal for a dai
 
 ### PostHog
 
-- **Status:** OFFICIAL_API_AVAILABLE_NOT_CONFIGURED
+- **Status:** AVAILABLE_MISSING_AUTH
 - **Purpose:** Product conversion analytics — installs, activation, trial, paid
 - **Env vars:** `POSTHOG_PROJECT_API_KEY`, `POSTHOG_HOST`
 - **Monthly cost:** 0 on the free tier

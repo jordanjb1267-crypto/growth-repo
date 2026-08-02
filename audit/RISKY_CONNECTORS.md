@@ -1,6 +1,6 @@
 # Risky Connectors
 
-Generated: 2026-07-31T16:47:09.484Z
+Generated: 2026-08-02T18:27:55.448Z
 
 Connectors whose risk is high enough to change the build decision, not just the build order.
 
