@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { after, afterEach, describe, it } from 'node:test';
 import { BlotatoAdapter } from '../src/publish/blotato.ts';
 import { buildAdapters, publishBackend } from '../src/publish/registry.ts';
 import { LinkedInAdapter } from '../src/publish/linkedin.ts';
-import { REPO_ROOT } from '../src/lib/paths.ts';
+import { installAssetFixture, removeAssetFixture } from './media-fixtures.ts';
 import { draftItem } from './helpers.ts';
 import type { ContentItem } from '../src/lib/types.ts';
 
@@ -39,12 +37,10 @@ afterEach(() => {
 });
 
 // Own fixture file — adapters.test.ts manages its own and test files can run
-// concurrently, so the two must not share a path.
-const FIXTURE_DIR = join(REPO_ROOT, 'assets', 'rig-receipts', 'videos');
-const FIXTURE = join(FIXTURE_DIR, 'test-fixture-blotato.mp4');
-mkdirSync(FIXTURE_DIR, { recursive: true });
-writeFileSync(FIXTURE, Buffer.alloc(2048, 1));
-after(() => rmSync(FIXTURE, { force: true }));
+// concurrently, so the two must not share a path. Genuine 9:16 media, so the
+// Blotato video path exercises the real ffprobe success branch.
+const FIXTURE_RELATIVE = installAssetFixture('validVertical', 'rig-receipts/videos/test-fixture-blotato.mp4');
+after(() => removeAssetFixture(FIXTURE_RELATIVE));
 
 function item(overrides: Partial<ContentItem> = {}): ContentItem {
   return draftItem({

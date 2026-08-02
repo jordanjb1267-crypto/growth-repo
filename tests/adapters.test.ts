@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { statSync } from 'node:fs';
 import { join } from 'node:path';
 import { after, afterEach, describe, it } from 'node:test';
 import { LinkedInAdapter } from '../src/publish/linkedin.ts';
@@ -10,6 +10,7 @@ import { TikTokAdapter } from '../src/publish/tiktok.ts';
 import { checkVideoAsset, VIDEO_CONSTRAINTS } from '../src/publish/assets.ts';
 import { upsertEnv } from '../src/lib/env-file.ts';
 import { REPO_ROOT } from '../src/lib/paths.ts';
+import { installAssetFixture, removeAssetFixture } from './media-fixtures.ts';
 import { draftItem } from './helpers.ts';
 import type { ContentItem } from '../src/lib/types.ts';
 
@@ -44,11 +45,11 @@ afterEach(() => {
   }
 });
 
-const FIXTURE_DIR = join(REPO_ROOT, 'assets', 'rig-receipts', 'videos');
-const FIXTURE = join(FIXTURE_DIR, 'test-fixture.mp4');
-mkdirSync(FIXTURE_DIR, { recursive: true });
-writeFileSync(FIXTURE, Buffer.alloc(1024, 1));
-after(() => rmSync(FIXTURE, { force: true }));
+// Genuine 9:16 media, so the adapters exercise the real ffprobe success path
+// rather than the probe-failure branch a filler file would take.
+const FIXTURE_RELATIVE = installAssetFixture('validVertical', 'rig-receipts/videos/test-fixture.mp4');
+const FIXTURE_BYTES = statSync(join(REPO_ROOT, 'assets', FIXTURE_RELATIVE)).size;
+after(() => removeAssetFixture(FIXTURE_RELATIVE));
 
 function videoItem(overrides: Partial<ContentItem> = {}): ContentItem {
   return draftItem({
@@ -69,6 +70,10 @@ describe('asset validation', () => {
     const check = checkVideoAsset('rig-receipts/videos/test-fixture.mp4', VIDEO_CONSTRAINTS.TikTok);
     assert.ok(check.ok, check.detail);
     assert.equal(check.relative_to_assets, 'rig-receipts/videos/test-fixture.mp4');
+    // Proof the probe genuinely ran: measured duration and dimensions are
+    // reported, which the old filler-byte fixture could never produce.
+    assert.match(check.detail, /5s, 144x256 \(ratio 0\.563, vertical\)/);
+    assert.equal(check.probe_failure, null);
   });
 
   it('refuses missing files, traversal, and wrong extensions', () => {
@@ -259,7 +264,7 @@ describe('TikTok adapter', () => {
     assert.equal(initBody.source_info.source, 'FILE_UPLOAD');
     assert.equal(initBody.source_info.total_chunk_count, 1);
     const uploadHeaders = calls[2]?.init?.headers as Record<string, string>;
-    assert.match(uploadHeaders['Content-Range'] ?? '', /^bytes 0-1023\/1024$/);
+    assert.equal(uploadHeaders['Content-Range'], `bytes 0-${FIXTURE_BYTES - 1}/${FIXTURE_BYTES}`);
   });
 });
 

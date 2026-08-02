@@ -81,8 +81,13 @@ async function main(): Promise<void> {
   else bad('claude CLI not found — content generation and rubric scoring cannot run', true);
 
   const ffprobe = version('ffprobe', ['-version']);
-  if (ffprobe) ok('ffprobe present — video duration/aspect validated before upload');
-  else warn('ffprobe absent — video duration checks degrade to a warning (install ffmpeg before Phase 4 video publishing)');
+  if (ffprobe) ok('ffprobe present — video duration and aspect ratio are verified before upload');
+  else {
+    // Not a safety-core failure: text channels are unaffected. But video
+    // validation fails closed without it, so say what actually happens rather
+    // than implying a soft degrade.
+    warn('ffprobe absent — video publishing (Reels/Shorts/TikTok) FAILS CLOSED until ffmpeg is installed; text channels are unaffected');
+  }
 
   // --- Safety core ---------------------------------------------------------
   section('Safety core');
