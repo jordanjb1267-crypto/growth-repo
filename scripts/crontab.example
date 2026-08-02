@@ -15,7 +15,12 @@ NODE=/usr/local/bin/node
 0 7 * * *   cd $REPO && $NODE src/scripts/daily-research.ts     >> logs/cron.log 2>&1
 0 8 * * *   cd $REPO && $NODE src/scripts/generate-content.ts   >> logs/cron.log 2>&1
 30 8 * * *  cd $REPO && $NODE src/scripts/classify-risk.ts      >> logs/cron.log 2>&1
-0 9 * * *   cd $REPO && $NODE src/scripts/approval-digest.ts --email >> logs/cron.log 2>&1
+# --email is deliberately ABSENT: the digest is a founder-notification path and
+# is not governed by the marketing kill switches, so a scheduled send would
+# start the moment Resend credentials exist. Add --email here only when you
+# actively want scheduled mail (the launchd/scheduler equivalent is
+# SCHEDULER_DIGEST_EMAIL=true).
+0 9 * * *   cd $REPO && $NODE src/scripts/approval-digest.ts     >> logs/cron.log 2>&1
 0 12 * * *  cd $REPO && $NODE src/scripts/publish-approved.ts   >> logs/cron.log 2>&1
 0 20 * * *  cd $REPO && $NODE src/scripts/collect-analytics.ts  >> logs/cron.log 2>&1
 30 20 * * * cd $REPO && $NODE src/scripts/update-memory.ts      >> logs/cron.log 2>&1

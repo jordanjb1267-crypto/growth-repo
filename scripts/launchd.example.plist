@@ -4,12 +4,43 @@
   cron does not run with the lid closed and the scheduler's catch-up-on-wake
   behaviour matters.
 
+  THIS IS A TEMPLATE. Every __PLACEHOLDER__ below must be replaced before use.
+  Do not install it as-is; launchd will fail silently in ways that look like
+  the scheduler is running when it is not.
+
   Install:
-    1. Fix the two paths below (node binary and repo).
+    1. Replace __REPO__, __NODE__, and __PATH__ (see below).
     2. cp scripts/launchd.example.plist ~/Library/LaunchAgents/com.growthos.scheduler.plist
     3. launchctl load ~/Library/LaunchAgents/com.growthos.scheduler.plist
 
-  Logs land in the repo's logs/ directory (gitignored).
+  __REPO__  absolute path to this checkout        (`pwd`)
+  __NODE__  absolute path to Node 22.18+          (`command -v node`)
+  __PATH__  PATH for CHILD processes. This is the one that bites: launchd
+            agents inherit a minimal PATH (/usr/bin:/bin:/usr/sbin:/sbin),
+            which contains neither Homebrew nor a user-local bin directory.
+            The scheduler spawns job scripts with an absolute node path, but
+            THOSE scripts resolve `claude` and `ffprobe` from PATH. Without
+            them, content generation and risk classification fail outright and
+            video validation fails closed. Build it from:
+              dirname of `command -v claude`
+              dirname of `command -v ffprobe`
+            plus the system defaults. Example on a Homebrew + ~/.local setup:
+              /Users/you/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+
+  Logs land in the repo's logs/ directory (gitignored). stdout and stderr go to
+  SEPARATE files: a scheduler that is running normally writes only to the out
+  file, so any content in the err file is a real signal rather than something
+  to be picked out of interleaved output.
+
+  Duplicate instances: launchd will not load two agents with the same Label,
+  and the scheduler additionally takes an atomic lock at logs/scheduler.lock,
+  so a hand-run `npm run scheduler` cannot collide with this one. The second
+  process exits non-zero immediately.
+
+  KeepAlive restarts the scheduler if it exits unexpectedly. ThrottleInterval
+  puts a floor under that: without it launchd retries every 10s, which turns a
+  persistent failure (a held lock, a bad .env) into a tight crash loop that
+  fills the log. 60s is slow enough to be harmless and fast enough to recover.
 -->
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -17,25 +48,39 @@
   <key>Label</key>
   <string>com.growthos.scheduler</string>
 
+  <!-- Continuous production loop. NOT --once, --dry-run, or --all-due:
+       those are bounded rehearsal modes and would exit immediately, which
+       KeepAlive would then treat as a crash and restart forever. -->
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/local/bin/node</string>
-    <string>src/scripts/scheduler.ts</string>
+    <string>__NODE__</string>
+    <string>__REPO__/src/scripts/scheduler.ts</string>
   </array>
 
   <key>WorkingDirectory</key>
-  <string>/ABSOLUTE/PATH/TO/growth-repo</string>
+  <string>__REPO__</string>
 
-  <key>KeepAlive</key>
-  <true/>
+  <!-- The scripts load .env themselves from the repo root, so no secret is
+       stored here. Only PATH is set, and PATH is not a secret. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__PATH__</string>
+  </dict>
 
   <key>RunAtLoad</key>
   <true/>
 
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>ThrottleInterval</key>
+  <integer>60</integer>
+
   <key>StandardOutPath</key>
-  <string>/ABSOLUTE/PATH/TO/growth-repo/logs/launchd.log</string>
+  <string>__REPO__/logs/launchd.out.log</string>
 
   <key>StandardErrorPath</key>
-  <string>/ABSOLUTE/PATH/TO/growth-repo/logs/launchd.log</string>
+  <string>__REPO__/logs/launchd.err.log</string>
 </dict>
 </plist>
