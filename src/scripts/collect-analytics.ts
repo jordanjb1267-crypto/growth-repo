@@ -38,7 +38,7 @@ async function main(): Promise<void> {
 
   const scorecard = readScorecard();
   const manual = readManualMetrics();
-  const funnel = await collectFunnel(published.map((i) => i.id));
+  const funnel = await collectFunnel(published.map((i) => ({ id: i.id, product: i.product })));
   const now = new Date().toISOString();
 
   let updated = 0;

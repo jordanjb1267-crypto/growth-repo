@@ -27,6 +27,7 @@ import { checkPublishAllowed, DRAFT_ONLY_PLATFORMS, GLOBAL_SWITCH, platformSwitc
 import { connectorHealth } from '../publish/adapter.ts';
 import { buildAdapters, publishBackend } from '../publish/registry.ts';
 import { getProvider } from '../llm/index.ts';
+import { projectIdFor, projectEnvKey } from '../analytics/posthog.ts';
 import { PRODUCTS } from '../lib/types.ts';
 
 loadEnvFile();
@@ -134,8 +135,17 @@ async function main(): Promise<void> {
   if (process.env.RIG_RECEIPTS_URL && process.env.TILAWAH_LOCK_URL) ok('product URLs set — UTM funnel attribution active');
   else warn('RIG_RECEIPTS_URL / TILAWAH_LOCK_URL not both set — published CTA links carry no funnel attribution until they are');
 
-  if (process.env.POSTHOG_PERSONAL_API_KEY && process.env.POSTHOG_PROJECT_ID) ok('PostHog query credentials set — funnel collection active');
-  else warn('POSTHOG_PERSONAL_API_KEY / POSTHOG_PROJECT_ID not set — analytics:collect skips funnel metrics (the ingestion key alone cannot query)');
+  if (!process.env.POSTHOG_PERSONAL_API_KEY) {
+    warn('POSTHOG_PERSONAL_API_KEY not set — analytics:collect skips funnel metrics entirely (the ingestion key alone cannot query)');
+  } else {
+    // Each product has its own PostHog project; one missing project means that
+    // product's funnel is invisible while the other looks healthy.
+    for (const product of PRODUCTS) {
+      const project = projectIdFor(product);
+      if (project) ok(`PostHog ${product}: querying project ${project}`);
+      else warn(`PostHog ${product}: ${projectEnvKey(product)} not set — this product's funnel metrics will be missing`);
+    }
+  }
 
   // --- Channels ------------------------------------------------------------
   section('Channels');
