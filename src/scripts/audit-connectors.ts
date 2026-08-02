@@ -17,7 +17,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { paths, REPO_ROOT } from '../lib/paths.ts';
 import { CONNECTORS, type ConnectorEntry } from './connector-matrix-data.ts';
@@ -82,6 +82,49 @@ function probeMcp(): { available: boolean; detail: string } {
   }
 }
 
+/**
+ * Probe non-interactive `claude -p` — the backend the whole content engine runs
+ * on — by actually running it, as the spec's audit checklist asks.
+ *
+ * Presence of the binary is not evidence that headless invocation works: it can
+ * be present and still time out (a nested Claude Code session, a stalled auth
+ * refresh). Reporting "assumed available" off `claude --version` states the one
+ * load-bearing capability without testing it, which is exactly the class of
+ * claim this audit exists to eliminate.
+ *
+ * Costs one very short model call per audit run. Set `AUDIT_SKIP_LLM_PROBE=true`
+ * to skip it on a machine where spawning it is undesirable.
+ */
+function probeClaudeHeadless(binaryPresent: boolean): { status: string; detail: string } {
+  if (!binaryPresent) return { status: 'unavailable', detail: '`claude` binary not found' };
+  if (process.env.AUDIT_SKIP_LLM_PROBE === 'true') {
+    return { status: 'not probed', detail: 'skipped via AUDIT_SKIP_LLM_PROBE=true — availability unverified' };
+  }
+
+  try {
+    const out = execFileSync('claude', ['-p', 'Reply with exactly: ok'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 45_000,
+    });
+    return { status: 'verified', detail: `responded: ${out.trim().slice(0, 80) || '(empty response)'}` };
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException | undefined)?.code;
+    if (code === 'ETIMEDOUT') {
+      return {
+        status: 'FAILED (timed out)',
+        detail:
+          'no response in 45s. Content generation cannot run until this works. ' +
+          'Common cause: the audit was launched from inside a Claude Code session — retry from a plain shell.',
+      };
+    }
+    return {
+      status: 'FAILED',
+      detail: error instanceof Error ? error.message.split('\n')[0] ?? '' : 'unavailable',
+    };
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Secrets — key presence only, never values
 // ---------------------------------------------------------------------------
@@ -93,9 +136,26 @@ function probeMcp(): { available: boolean; detail: string } {
  * later, so there is no code path in which a secret value exists in a variable
  * that could be logged by accident.
  */
-function readEnvKeys(file: string): Set<string> {
-  const keys = new Set<string>();
-  if (!existsSync(file)) return keys;
+export function readEnvKeys(file: string): Set<string> {
+  return parseEnv(file).configured;
+}
+
+/**
+ * Every key NAME the file declares, whether or not it carries a value.
+ *
+ * `.env.example` declares the full set of keys the system understands; most
+ * ship empty because they are the credentials the founder has yet to insert.
+ * Those empty declarations are the entire point of the secrets report — a
+ * report built only from keys that already have values can never show a gap.
+ */
+export function readDeclaredKeys(file: string): Set<string> {
+  return parseEnv(file).declared;
+}
+
+function parseEnv(file: string): { declared: Set<string>; configured: Set<string> } {
+  const declared = new Set<string>();
+  const configured = new Set<string>();
+  if (!existsSync(file)) return { declared, configured };
 
   for (const line of readFileSync(file, 'utf8').split('\n')) {
     const trimmed = line.trim();
@@ -106,9 +166,32 @@ function readEnvKeys(file: string): Set<string> {
 
     const key = trimmed.slice(0, eq).trim();
     const hasValue = trimmed.slice(eq + 1).trim().length > 0;
-    if (hasValue) keys.add(key);
+    declared.add(key);
+    if (hasValue) configured.add(key);
   }
-  return keys;
+  return { declared, configured };
+}
+
+/**
+ * Build the secrets table over every DECLARED key, not just the set ones.
+ *
+ * The distinction is load-bearing. `.env.example` pre-fills a minority of keys
+ * with non-secret defaults (kill switches, API versions, model names) and
+ * leaves the credentials empty. A table built from keys-with-values therefore
+ * lists only the defaults, and every row reads "yes" the moment the founder
+ * runs `cp .env.example .env` — reporting a fully configured system at the
+ * exact moment nothing is configured.
+ */
+export function secretsReport(
+  declaredKeys: Set<string>,
+  envKeys: Set<string>,
+): { total: number; configured: number; rows: string[][] } {
+  const all = [...new Set([...declaredKeys, ...envKeys])].sort();
+  return {
+    total: all.length,
+    configured: all.filter((k) => envKeys.has(k)).length,
+    rows: all.map((k) => [`\`${k}\``, envKeys.has(k) ? 'yes' : 'no']),
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -160,8 +243,11 @@ function main(): void {
   const probes = TOOL_PROBES.map(probe);
   const mcp = probeMcp();
   const envKeys = readEnvKeys(join(REPO_ROOT, '.env'));
-  const exampleKeys = readEnvKeys(join(REPO_ROOT, '.env.example'));
+  const exampleKeys = readDeclaredKeys(join(REPO_ROOT, '.env.example'));
   const hasEnvFile = existsSync(join(REPO_ROOT, '.env'));
+  const secrets = secretsReport(exampleKeys, envKeys);
+  const claudePresent = probes.find((p) => p.name === 'Claude Code')?.present ?? false;
+  const headless = probeClaudeHeadless(claudePresent);
 
   const matrix = CONNECTORS.map((c) => ({ ...c, status: statusFor(c, envKeys) }));
 
@@ -206,8 +292,8 @@ function main(): void {
       '',
       '## Claude Code and MCP',
       '',
-      `- \`claude\` binary: ${probes.find((p) => p.name === 'Claude Code')?.present ? 'present' : 'NOT FOUND'}`,
-      `- Non-interactive \`claude -p\`: ${probes.find((p) => p.name === 'Claude Code')?.present ? 'assumed available (binary present)' : 'unavailable'}`,
+      `- \`claude\` binary: ${claudePresent ? 'present' : 'NOT FOUND'}`,
+      `- Non-interactive \`claude -p\`: ${headless.status} — ${headless.detail}`,
       `- \`claude mcp list\`: ${mcp.available ? 'succeeded' : 'failed'}`,
       '',
       '```text',
@@ -219,15 +305,14 @@ function main(): void {
       '> Only key NAMES are inspected. No value is read, logged, or written by this audit.',
       '',
       `- \`.env\` present: ${hasEnvFile ? 'yes' : 'no'}`,
-      `- \`.env.example\` present: ${exampleKeys.size > 0 || existsSync(join(REPO_ROOT, '.env.example')) ? 'yes' : 'no'}`,
-      `- Keys with a non-empty value in \`.env\`: ${envKeys.size}`,
+      `- \`.env.example\` present: ${existsSync(join(REPO_ROOT, '.env.example')) ? 'yes' : 'no'}`,
+      `- Configured: **${secrets.configured} of ${secrets.total}** declared keys carry a value in \`.env\`.`,
       '',
-      table([
-        ['Key', 'Configured'],
-        ...[...new Set([...exampleKeys, ...envKeys])]
-          .sort()
-          .map((k) => [`\`${k}\``, envKeys.has(k) ? 'yes' : 'no']),
-      ]),
+      secrets.configured < secrets.total
+        ? `The ${secrets.total - secrets.configured} key(s) below marked \`no\` are the remaining standup gap. Run \`npm run doctor\` for the per-channel next command.`
+        : 'Every declared key carries a value.',
+      '',
+      table([['Key', 'Configured'], ...secrets.rows]),
       '',
       '## Repository',
       '',
@@ -452,7 +537,8 @@ function main(): void {
   console.log('Connector audit complete.');
   console.log(`  Platform: ${host}`);
   console.log(`  Tools present: ${probes.filter((p) => p.present).length}/${probes.length}`);
-  console.log(`  Configured secrets: ${envKeys.size} key(s) — values were never read`);
+  console.log(`  Configured keys: ${secrets.configured}/${secrets.total} — values were never read`);
+  console.log(`  Headless claude -p: ${headless.status}`);
   console.log(`  Connectors assessed: ${matrix.length}`);
   console.log('');
   for (const file of ['CONNECTOR_AUDIT.md', 'CONNECTOR_MATRIX.json', 'MISSING_CONNECTORS.md', 'RISKY_CONNECTORS.md', 'RECOMMENDED_CONNECTORS.md', 'ENVIRONMENT_AUDIT.md']) {
@@ -467,4 +553,24 @@ function main(): void {
   console.log('');
 }
 
-main();
+/**
+ * Run only when invoked as a command, never on import.
+ *
+ * This module writes all six /audit files as a side effect of loading, so an
+ * unguarded call means any import — a test, a future script reusing the env
+ * parsers — silently regenerates the audit on whatever machine it happens to
+ * be running on, overwriting the founder's laptop-generated output with
+ * container data. That is precisely the invalidation CLAUDE.md A7 warns about,
+ * and it is not something a reader of the importing file would ever suspect.
+ */
+function invokedDirectly(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return realpathSync(entry) === realpathSync(import.meta.filename);
+  } catch {
+    return false;
+  }
+}
+
+if (invokedDirectly()) main();
