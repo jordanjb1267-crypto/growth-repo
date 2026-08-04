@@ -7,7 +7,7 @@
  * renderTemplate() refuses the exemption — which is the intended behaviour, not
  * a bug to work around.
  *
- *   npm run seal:template -- tilawah-lock TL-FOCUS-LOCK-DEMO-001
+ *   npm run seal:template -- tilawah-lock TL-QURAN-LOCK-PRELAUNCH-001
  *   npm run seal:template -- --all
  */
 
