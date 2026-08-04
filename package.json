@@ -19,6 +19,8 @@
     "reject": "node src/scripts/reject.ts",
     "block": "node src/scripts/block.ts",
     "edit": "node src/scripts/edit.ts",
+    "content:hold": "node src/scripts/content-hold.ts",
+    "content:release": "node src/scripts/content-release.ts",
     "seal:template": "node src/scripts/seal-template.ts",
     "connector:resume": "node src/scripts/connector-resume.ts",
     "scheduler": "node src/scripts/scheduler.ts",

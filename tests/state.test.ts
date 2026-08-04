@@ -46,7 +46,11 @@ describe('state machine', () => {
 
   it('routes a founder edit back into brand checking', () => {
     // This is the edge that stops an edit from bypassing the classifier.
-    assert.deepEqual(legalTransitionsFrom('edited'), ['brand_checked']);
+    // `verification_hold` is the only other exit, and it is a parking state
+    // whose own exits are `edited` and `rejected` — so neither route lets an
+    // edit reach publication without being classified again.
+    assert.deepEqual([...legalTransitionsFrom('edited')].sort(), ['brand_checked', 'verification_hold']);
+    assert.ok(legalTransitionsFrom('edited').includes('brand_checked'));
 
     const item = draftItem({ id: 'T-3', product: 'Tilawah Lock', status: 'edited' });
     const moved = transition(item, 'brand_checked', 'test');

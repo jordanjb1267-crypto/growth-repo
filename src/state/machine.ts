@@ -28,7 +28,7 @@ import type { ContentItem, ContentState, TransitionRecord } from '../lib/types.t
  *      publication. To resurrect blocked content, create a new item.
  */
 const LEGAL: Record<ContentState, readonly ContentState[]> = {
-  drafted: ['brand_checked', 'blocked'],
+  drafted: ['brand_checked', 'blocked', 'verification_hold'],
   brand_checked: ['risk_classified', 'blocked'],
   risk_classified: ['auto_publish_ready', 'awaiting_founder_approval', 'blocked'],
 
@@ -39,18 +39,36 @@ const LEGAL: Record<ContentState, readonly ContentState[]> = {
   // out. Neither is honest. Correction is a normal event, so it gets a normal
   // edge; it costs nothing in safety because `edited` leads only back through
   // brand check and classification.
-  auto_publish_ready: ['scheduled', 'blocked', 'expired', 'edited'],
+  auto_publish_ready: ['scheduled', 'blocked', 'expired', 'edited', 'verification_hold'],
   awaiting_founder_approval: [
     'auto_publish_ready',
     'rejected',
     'blocked',
     'edited',
     'expired',
+    'verification_hold',
   ],
 
   // Re-enters classification. This is the edge that stops founder edits from
   // bypassing the risk classifier.
-  edited: ['brand_checked'],
+  edited: ['brand_checked', 'verification_hold'],
+
+  /**
+   * Parking state for content whose product claims cannot yet be verified.
+   *
+   * Deliberately NOT a classifier-input state. `edited` was doing this job and
+   * could not: the scheduled classifier sweeps `drafted`/`edited`/
+   * `brand_checked` wholesale, so a held item was reclassified on the next run
+   * and could route straight back to auto-publish — a hold that silently
+   * undid itself overnight.
+   *
+   * The only route back toward publication is `edited`, which forces brand
+   * check and classification again. There is deliberately no edge to
+   * `brand_checked`, `risk_classified`, `auto_publish_ready`, `scheduled`, or
+   * `published`: releasing a hold must not be able to skip re-examination of
+   * the very claims that caused it.
+   */
+  verification_hold: ['edited', 'rejected'],
 
   scheduled: ['published', 'publish_failed', 'blocked'],
   publish_failed: ['scheduled', 'blocked'],
@@ -92,6 +110,9 @@ export const STATE_DIRECTORIES: Record<ContentState, string> = {
   expired: 'content/rejected',
   retracted: 'content/blocked',
   blocked: 'content/blocked',
+  // Its own directory: a held item must not sit among drafts, where it would
+  // look like ordinary pending work to anyone reading the filesystem.
+  verification_hold: 'content/verification-hold',
 };
 
 export class IllegalTransitionError extends Error {

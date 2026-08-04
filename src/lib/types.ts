@@ -64,6 +64,11 @@ export const CONTENT_STATES = [
   'publish_failed',
   'expired',
   'retracted',
+  // A deliberate parking state for content whose product claims cannot yet be
+  // verified. `edited` was serving this purpose and could not: it is a
+  // classifier-input state, so the next scheduled run swept held items back
+  // toward publication. Leaving the hold requires an explicit founder action.
+  'verification_hold',
 ] as const;
 export type ContentState = (typeof CONTENT_STATES)[number];
 
