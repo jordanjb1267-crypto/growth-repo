@@ -118,6 +118,63 @@ export interface GenerationResult {
   created: ContentItem[];
   skipped: { kind: string; reason: string }[];
   aso_idea: string | null;
+  /** Set when an idea was produced but rejected as incomplete. Null when the
+   *  idea was valid, and null when the model returned none at all. */
+  aso_idea_error: string | null;
+}
+
+/**
+ * Upper bound on a strategy idea.
+ *
+ * This used to be applied with a silent `slice(0, 600)`. Both of 2026-08-04's
+ * ideas came back at exactly 600 characters — the cap had cut them mid-word
+ * ("…one new caption ", "The same two-column b") and the run still reported
+ * success. Slicing prose at a byte count and filing the remainder as a
+ * finished thought is the bug; the limit now rejects rather than truncates.
+ */
+export const ASO_IDEA_MAX = 1200;
+
+/** Below this an "idea" cannot carry an actionable suggestion. */
+export const ASO_IDEA_MIN = 80;
+
+export type IdeaValidation =
+  | { ok: true; idea: string }
+  | { ok: false; reason: string };
+
+/**
+ * Fail-closed completeness check for a generated strategy idea.
+ *
+ * Never repairs. A truncated idea is reported and dropped, because the only
+ * way to "fix" one is to write the ending the model never produced — which
+ * would put invented product decisions into the founder's planning notes.
+ */
+export function validateAsoIdea(raw: string | undefined, max = ASO_IDEA_MAX): IdeaValidation {
+  if (raw === undefined || raw === null || raw.trim().length === 0) {
+    return { ok: false, reason: 'absent' };
+  }
+
+  // Checked before trimming: trailing whitespace where a terminator belongs is
+  // itself the signature of a cut, not a formatting quirk.
+  if (raw !== raw.trimEnd()) {
+    return { ok: false, reason: `idea ends in trailing whitespace, not a sentence terminator: …${JSON.stringify(raw.slice(-28))}` };
+  }
+
+  const idea = raw.trim();
+
+  if (idea.length < ASO_IDEA_MIN) {
+    return { ok: false, reason: `idea is ${idea.length} chars, under the ${ASO_IDEA_MIN}-char minimum to be actionable` };
+  }
+  if (idea.length > max) {
+    return { ok: false, reason: `idea is ${idea.length} chars, over the ${max}-char ceiling — treated as incomplete rather than truncated` };
+  }
+
+  // A finished idea ends on a sentence terminator, optionally closed by a
+  // quote or bracket. "…two-column b" and "…one new caption" both fail here.
+  if (!/[.!?][)"'’”\]]?$/.test(idea)) {
+    return { ok: false, reason: `idea ends mid-sentence with no terminator: …${JSON.stringify(idea.slice(-28))}` };
+  }
+
+  return { ok: true, idea };
 }
 
 function clip(value: string | undefined, max: number): string {
@@ -310,13 +367,24 @@ export async function generateForProduct(
     created.push(item);
   }
 
-  // ASO/landing ideas are notes for the founder, not publishable content.
-  const asoIdea = clip(parsed.aso_idea, 600) || null;
-  if (asoIdea) {
+  // ASO/landing ideas are notes for the founder, not publishable content — but
+  // an incomplete one must not be filed as though it were a finished thought.
+  const ideaCheck = validateAsoIdea(parsed.aso_idea);
+  let asoIdea: string | null = null;
+  let asoIdeaError: string | null = null;
+
+  if (ideaCheck.ok) {
+    asoIdea = ideaCheck.idea;
     const ideasFile = join(paths.analytics, 'daily', `${dayId()}-ideas.md`);
     mkdirSync(join(paths.analytics, 'daily'), { recursive: true });
     appendFileSync(ideasFile, `- **${product}:** ${asoIdea}\n`, 'utf8');
+  } else if (ideaCheck.reason !== 'absent') {
+    // Deliberately NOT written to analytics/daily, and deliberately not
+    // repaired: completing someone else's truncated sentence means inventing
+    // the product decision it was about to state.
+    asoIdeaError = ideaCheck.reason;
+    skipped.push({ kind: 'aso_idea', reason: ideaCheck.reason });
   }
 
-  return { created, skipped, aso_idea: asoIdea };
+  return { created, skipped, aso_idea: asoIdea, aso_idea_error: asoIdeaError };
 }

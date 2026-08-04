@@ -32,7 +32,14 @@ const LEGAL: Record<ContentState, readonly ContentState[]> = {
   brand_checked: ['risk_classified', 'blocked'],
   risk_classified: ['auto_publish_ready', 'awaiting_founder_approval', 'blocked'],
 
-  auto_publish_ready: ['scheduled', 'blocked', 'expired'],
+  // `edited` is the correction path. Without it, Green content found to carry
+  // a factual error before scheduling had only two exits — `blocked`, which is
+  // terminal and throws the work away, or `expired`, which would write
+  // "approval timed out" into the audit trail for something that did not time
+  // out. Neither is honest. Correction is a normal event, so it gets a normal
+  // edge; it costs nothing in safety because `edited` leads only back through
+  // brand check and classification.
+  auto_publish_ready: ['scheduled', 'blocked', 'expired', 'edited'],
   awaiting_founder_approval: [
     'auto_publish_ready',
     'rejected',

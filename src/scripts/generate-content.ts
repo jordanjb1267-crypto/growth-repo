@@ -88,6 +88,20 @@ async function main(): Promise<void> {
           skipped: result.skipped,
           error: 'zero valid items',
         });
+      } else if (result.aso_idea_error) {
+        // Content drafts survive — they are independently valid and the
+        // existing partial-output policy keeps them. The run is still a
+        // failure, because an incomplete strategy artifact reported as success
+        // is exactly the gap this check exists to close.
+        console.error(`  INCOMPLETE — strategy idea rejected: ${result.aso_idea_error}`);
+        console.error(`  ${result.created.length} content draft(s) kept; nothing written to analytics/daily for ${product}.`);
+        outcomes.push({
+          product,
+          ok: false,
+          created: result.created.length,
+          skipped: result.skipped,
+          error: `incomplete aso_idea: ${result.aso_idea_error}`,
+        });
       } else {
         outcomes.push({ product, ok: true, created: result.created.length, skipped: result.skipped, error: null });
       }
@@ -111,7 +125,7 @@ async function main(): Promise<void> {
 
   if (failed.length > 0) {
     console.error(
-      `${failed.length} of ${outcomes.length} product(s) generated nothing. This run is a FAILURE; see ${RUN_LOG}.`,
+      `${failed.length} of ${outcomes.length} product(s) did not complete cleanly. This run is a FAILURE; see ${RUN_LOG}.`,
     );
     process.exitCode = 1;
     return;
