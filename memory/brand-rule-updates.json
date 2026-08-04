@@ -1,0 +1,6 @@
+{
+  "$schema_version": 1,
+  "description": "Append-only log of brand-risk notes learned from audience response. When negative response indicates an angle is landing badly, it is recorded here and the angle is softened.",
+  "note": "Entries here inform future generation. They never relax a hard constraint in CLAUDE.md or in the brand files — those change only by founder decision.",
+  "updates": []
+}

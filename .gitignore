@@ -1,0 +1,35 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Local-only content and logs (machine-specific, not shared state)
+logs/*.jsonl
+content/**/*.local.json
+analytics/raw/**
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Assets are large binaries — track deliberately, not by accident
+assets/**/*.mp4
+assets/**/*.mov
+assets/**/*.png
+assets/**/*.jpg
+assets/**/*.jpeg
+logs/*.json
+logs/*.log
+
+# Scheduler single-instance lock. A directory, so logs/*.json above does not
+# cover the owner file inside it.
+logs/scheduler.lock/
+logs/scheduler.lock.stale-*/
+site/dist/

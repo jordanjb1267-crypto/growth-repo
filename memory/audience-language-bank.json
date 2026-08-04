@@ -1,0 +1,6 @@
+{
+  "$schema_version": 1,
+  "description": "Words and phrases the audience actually uses, captured from public discussion. Used to keep generated copy in the audience's register rather than the marketer's.",
+  "note": "Collect from public sources only. Never scrape behind a login, and never lift a phrase that identifies an individual.",
+  "entries": []
+}

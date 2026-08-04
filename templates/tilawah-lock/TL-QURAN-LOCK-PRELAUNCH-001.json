@@ -1,0 +1,14 @@
+{
+  "$schema_version": 1,
+  "id": "TL-QURAN-LOCK-PRELAUNCH-001",
+  "product": "Tilawah Lock",
+  "campaign": "Read Before You Scroll",
+  "approved_by": "founder",
+  "approved_at": "2026-08-04T00:00:00.000Z",
+  "content_hash": "d0b3b37a4dafa9a6575f32b1475e5347c9db3bacf0e20da2605ca588eee54d69",
+  "hook": "Read before you scroll.",
+  "body": "Quran Lock is being built around a simple rule: the distracting apps you choose stay closed until you complete your reading goal. A few minutes is enough to begin. If something urgent comes up, the planned flow includes an emergency bypass. The goal is structure without shame — not a verdict on you.",
+  "caption": "Coming to Tilawah Lock: choose the distracting apps, set a Quran reading goal, and unlock after completion. Pray. Read. Then unlock.",
+  "cta": "Follow Tilawah Lock for launch updates.",
+  "slots": []
+}

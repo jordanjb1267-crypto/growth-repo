@@ -1,0 +1,6 @@
+{
+  "$schema_version": 1,
+  "description": "Every campaign run, with its classification. Valid classifications: SCALE, REWORK, ARCHIVE, KILL, UNCLASSIFIED.",
+  "note": "A campaign stays UNCLASSIFIED until it clears the sample thresholds in platform-performance.json. Classifying on thin data is how a good campaign gets killed for a bad week.",
+  "campaigns": []
+}

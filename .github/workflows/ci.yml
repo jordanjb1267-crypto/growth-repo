@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node 22.18+ is required for native TypeScript type stripping — the
+      # project has no build step by design.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # ffprobe is a hard dependency of video asset validation, which now fails
+      # closed without it. Installed explicitly rather than relying on the
+      # runner image so the media-validation suite exercises the real probe
+      # success path here, not a skipped or degraded branch.
+      - name: Install ffmpeg (provides ffprobe)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - run: ffprobe -version | head -1
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test

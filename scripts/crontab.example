@@ -1,0 +1,30 @@
+# Autonomous Organic Growth OS — cron alternative to `npm run scheduler`.
+#
+# Install with:  crontab -e   and paste, after fixing the two paths below.
+# NODE must be Node 22.18+ (native TypeScript). cron runs with a minimal
+# environment: the scripts load .env themselves, but PATH must reach node.
+#
+# On macOS prefer `npm run scheduler` under launchd or a login item — cron on
+# macOS does not run while the laptop lid is closed, and the scheduler catches
+# up missed jobs on wake, which cron does not.
+
+REPO=/ABSOLUTE/PATH/TO/growth-repo
+NODE=/usr/local/bin/node
+
+# Daily
+0 7 * * *   cd $REPO && $NODE src/scripts/daily-research.ts     >> logs/cron.log 2>&1
+0 8 * * *   cd $REPO && $NODE src/scripts/generate-content.ts   >> logs/cron.log 2>&1
+30 8 * * *  cd $REPO && $NODE src/scripts/classify-risk.ts      >> logs/cron.log 2>&1
+# --email is deliberately ABSENT: the digest is a founder-notification path and
+# is not governed by the marketing kill switches, so a scheduled send would
+# start the moment Resend credentials exist. Add --email here only when you
+# actively want scheduled mail (the launchd/scheduler equivalent is
+# SCHEDULER_DIGEST_EMAIL=true).
+0 9 * * *   cd $REPO && $NODE src/scripts/approval-digest.ts     >> logs/cron.log 2>&1
+0 12 * * *  cd $REPO && $NODE src/scripts/publish-approved.ts   >> logs/cron.log 2>&1
+0 20 * * *  cd $REPO && $NODE src/scripts/collect-analytics.ts  >> logs/cron.log 2>&1
+30 20 * * * cd $REPO && $NODE src/scripts/update-memory.ts      >> logs/cron.log 2>&1
+
+# Weekly
+0 20 * * 5  cd $REPO && $NODE src/scripts/weekly-review.ts      >> logs/cron.log 2>&1
+0 9 * * 0   cd $REPO && $NODE src/scripts/weekly-plan.ts        >> logs/cron.log 2>&1
